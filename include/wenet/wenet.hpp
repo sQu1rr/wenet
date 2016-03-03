@@ -8,7 +8,6 @@
 #include "compressor.hpp"
 #include "packet.hpp"
 #include "peer.hpp"
-#include "units.hpp"
 #include "host.hpp"
 
 namespace sq {
