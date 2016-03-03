@@ -79,10 +79,8 @@ public:
 
     void flush();
 
-    template <typename Compressor>
-    void setCompression();
-    void setCompression(std::nullptr_t) noexcept;
-    void setCompression(Compressor::Type);
+    template <typename Comp> void setCompression();
+    void disableCompression() noexcept;
 
     // Checksum TODO wrapper
 
@@ -146,14 +144,22 @@ template <typename Comp>
 void Host::setCompression()
 {
     static_assert(std::is_base_of<Compressor, Comp>::value, "Wrong class type");
-    compressor_ = std::make_unique<Comp>();
-    ENetCompressor compressor{
-        compressor_.get(),
-        compressor_detail::compress<Comp>,
-        compressor_detail::decompress<Comp>,
-        nullptr
-    };
-    enet_host_compress(host_.get(), &compressor);
+    if (std::is_same<Comp, compressor::Range>::value) {
+        compressor_.reset();
+        if (enet_host_compress_with_range_coder(host_.get())) {
+            throw RangeCompressorInitException{"Cannot initialise compressor"};
+        }
+    }
+    else {
+        compressor_ = std::make_unique<Comp>();
+        ENetCompressor compressor{
+            compressor_.get(),
+            compressor_detail::compress<Comp>,
+            compressor_detail::decompress<Comp>,
+            nullptr
+        };
+        enet_host_compress(host_.get(), &compressor);
+    }
 }
 
 } // \wenet

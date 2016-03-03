@@ -26,6 +26,8 @@ int main()
         cout << "Disconnected" << endl;
     });
 
+    client.setCompression<sq::wenet::compressor::Zlib>();
+
     auto hostname = "localhost"s;
     auto& server = client.connect({hostname, 1238u});
 

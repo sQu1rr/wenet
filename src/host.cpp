@@ -107,17 +107,10 @@ void Host::flush()
     enet_host_flush(host_.get());
 }
 
-void Host::setCompression(std::nullptr_t) noexcept
+void Host::disableCompression() noexcept
 {
     compressor_.reset();
-}
-
-void Host::setCompression(Compressor::Type)
-{
-    compressor_.reset();
-    if (enet_host_compress_with_range_coder(host_.get())) {
-        throw RangeCompressorInitException{"Cannot initialise compressor"};
-    }
+    enet_host_compress(host_.get(), nullptr);
 }
 
 void Host::onChecksum(decltype(ENetHost::checksum) callback) const noexcept

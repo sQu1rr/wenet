@@ -5,9 +5,9 @@ foreach (fileSrc ${testSrcs})
     get_filename_component (fileName ${fileSrc} NAME_WE)
     get_filename_component (filePath ${fileSrc} DIRECTORY)
 
-    add_executable (test_${fileName} ${fileSrc} ${srcs})
-    target_link_libraries (test_${fileName} enet)
+    add_executable (${fileName} ${fileSrc} ${srcs})
+    target_link_libraries (${fileName} enet)
 
-    set_target_properties (test_${fileName} PROPERTIES 
+    set_target_properties (${fileName} PROPERTIES 
         RUNTIME_OUTPUT_DIRECTORY ${EXAMPLE_BIN}/${filePath})
 endforeach (fileSrc)

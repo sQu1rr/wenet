@@ -28,6 +28,8 @@ int main()
         cout << descClient(peer) << "Disconnected" << endl;
     });
 
+    server.setCompression<sq::wenet::compressor::Zlib>();
+
     bool work = true;
     while (work) {
         server.service(time::ms{1000}, [&work](Peer& peer, Packet&& packet) {
