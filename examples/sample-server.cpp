@@ -12,9 +12,7 @@ string descClient(const Peer& peer)
     return "["s + addr.getIp() + ":" + to_string(addr.getPort()) + "] "s;
 }
 
-string unpack(span<const byte> data) {
-    return {data.begin(), data.end()};
-}
+string unpack(span<const byte> data) { return {data.begin(), data.end()}; }
 
 int main()
 {
@@ -22,6 +20,8 @@ int main()
 
     server.onConnect([](Peer&& peer) {
         cout << descClient(peer) << "Connected" << endl;
+        peer.setTimeout({1000_ms, 0_ms, 1000_ms});
+        peer.setPingInterval(500_ms);
     });
 
     server.onDisconnect([](Peer&& peer) {
