@@ -10,12 +10,4 @@
 #include "peer.hpp"
 #include "host.hpp"
 
-namespace sq {
-
-namespace wenet {
-
-} // \wenet
-
-} // \sq
-
 #endif
