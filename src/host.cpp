@@ -18,7 +18,6 @@ Host::Host(size_t peerCount, const ENetAddress* address)
             throw InitialisationException{"Cannot initialise ENET"};
         }
     }
-    peers_.reserve(peerCount);
     host_.reset(enet_host_create(address, peerCount, 0u, 0u, 0u));
 }
 
@@ -34,16 +33,16 @@ Host::~Host()
     }
 }
 
-Peer& Host::connect(const Address& address) noexcept
+Peer Host::connect(const Address& address) noexcept
 {
     return connect(address, getChannelLimit());
 }
 
-Peer& Host::connect(const Address& address, size_t channelCount,
+Peer Host::connect(const Address& address, size_t channelCount,
                     uint32_t data) noexcept
 {
     auto peer = enet_host_connect(host_.get(), address, channelCount, data);
-    return createPeer(peer);
+    return {*peer};
 }
 
 Host::Bandwidth Host::getBandwidthLimit() const noexcept
@@ -67,6 +66,11 @@ void Host::broadcast(Packet&& packet, uint8_t channelId) const noexcept
     enet_host_broadcast(host_.get(), channelId, packet.releasePacket());
 }
 
+void Host::onReceive(Callback callback) noexcept
+{
+    cbReceive_ = std::move(callback);
+}
+
 void Host::onConnect(EventCallback callback) noexcept
 {
     cbConnect_ = std::move(callback);
@@ -77,29 +81,49 @@ void Host::onDisconnect(EventCallback callback) noexcept
     cbDisconnect_ = std::move(callback);
 }
 
-void Host::receive(Callback callback, bool once) noexcept
+bool Host::receive(int limit) noexcept
 {
     do {
         auto result = enet_host_check_events(host_.get(), &event_);
-        if (result > 0) parseEvent(callback);
+        if (result > 0) parseEvent();
         else if (result < 0) throw ReceiveEventException{"Cannot receive event"};
-        else once = true;
-    } while(!once);
+        else return false;
+    } while(--limit);
+    return true;
 }
 
-void Host::service(Callback callback, bool once) noexcept
+bool Host::receive(Callback callback, int limit) noexcept
 {
-    service(time::ms{0}, callback, once);
+    onReceive(callback);
+    return receive(limit);
 }
 
-void Host::service(time::ms timeout, Callback callback, bool once) noexcept
+bool Host::service(int limit) noexcept
+{
+    return service(time::ms{0}, limit);
+}
+
+bool Host::service(Callback callback, int limit) noexcept
+{
+    onReceive(callback);
+    return service(limit);
+}
+
+bool Host::service(time::ms timeout, int limit) noexcept
 {
     do {
         auto result = enet_host_service(host_.get(), &event_, timeout.count());
-        if (result > 0) parseEvent(callback);
+        if (result > 0) parseEvent();
         else if (result < 0) throw ReceiveEventException{"Cannot receive event"};
-        else once = true;
-    } while(!once);
+        else return false;
+    } while(--limit);
+    return true;
+}
+
+bool Host::service(time::ms timeout, Callback callback, int limit) noexcept
+{
+    onReceive(callback);
+    return service(timeout, limit);
 }
 
 void Host::flush()
@@ -113,14 +137,23 @@ void Host::disableCompression() noexcept
     enet_host_compress(host_.get(), nullptr);
 }
 
-void Host::onChecksum(decltype(ENetHost::checksum) callback) const noexcept
+void Host::_onChecksum(decltype(ENetHost::checksum) callback) const noexcept
 {
     host_->checksum = callback;
 }
 
-void Host::onIntercept(decltype(ENetHost::intercept) callback) const noexcept
+void Host::_onIntercept(decltype(ENetHost::intercept) callback) const noexcept
 {
     host_->intercept = callback;
+}
+
+std::vector<Peer> Host::getPeers() const noexcept
+{
+    std::vector<Peer> peers; peers.reserve(peerCount());
+    for (auto i = 0u; i < peerCount(); ++i) {
+        peers.emplace_back(host_->peers[i]);
+    }
+    return peers;
 }
 
 #if ENET_VERSION_CREATE(1, 3, 9) <= ENET_VERSION
@@ -181,44 +214,19 @@ uint32_t Host::getTotalSentPackets() const noexcept
     return host_->totalSentPackets;
 }
 
-void Host::parseEvent(const Callback& callback)
+void Host::parseEvent()
 {
     if (event_.type == ENET_EVENT_TYPE_CONNECT) {
-        if (cbConnect_) cbConnect_(createPeer(event_.peer), event_.data);
+        if (cbConnect_) cbConnect_({*event_.peer}, event_.data);
     }
     else {
-        auto& peer = getPeer(event_.peer);
         if (event_.type == ENET_EVENT_TYPE_RECEIVE) {
-            callback(peer, {*event_.packet}, event_.channelID);
+            cbReceive_({*event_.peer}, {*event_.packet}, event_.channelID);
         }
         else {
-            if (cbDisconnect_) cbDisconnect_(peer, event_.data);
-            removePeer(peer);
+            if (cbDisconnect_) cbDisconnect_({*event_.peer}, event_.data);
         }
     }
-}
-
-Peer& Host::createPeer(ENetPeer* peer) noexcept
-{
-    if (!peer->data) peers_.emplace_back(*peer);
-    return getPeer(peer);
-}
-
-Peer& Host::getPeer(ENetPeer* peer) noexcept
-{
-    return *reinterpret_cast<Peer*>(peer->data);
-}
-
-void Host::removePeer(const Peer& peer) noexcept
-{
-    auto it = std::find_if(peers_.begin(), peers_.end(),
-            [&peer](const Peer& test) {
-        return &test == &peer;
-    });
-    if (peers_.size() > 1u && &*it != &peers_.back()) {
-        std::swap(*it, peers_.back());
-    }
-    peers_.pop_back();
 }
 
 } // \network

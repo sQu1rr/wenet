@@ -41,10 +41,10 @@ inline size_t compress(void* context, const ENetBuffer* buffers,
                        size_t destLen)
 {
     std::vector<span<const byte>> in; in.reserve(bufferCount);
-    auto bufferView = span<const ENetBuffer>{
+    auto bufferSpan = span<const ENetBuffer>{
         buffers, std::ptrdiff_t(bufferCount)
     };
-    for (auto& buffer : bufferView) {
+    for (auto& buffer : bufferSpan) {
         in.emplace_back(static_cast<byte*>(buffer.data), buffer.dataLength);
     }
 
@@ -58,10 +58,8 @@ inline size_t decompress(void* context, const byte* source, size_t sourceLen,
                          byte* dest, size_t destLen)
 {
     T& compressor = *reinterpret_cast<T*>(context);
-    return compressor.decompress(
-        {source, std::ptrdiff_t(sourceLen)},
-        {dest, std::ptrdiff_t(destLen)}
-    );
+    return compressor.decompress({source, std::ptrdiff_t(sourceLen)},
+                                 {dest, std::ptrdiff_t(destLen)});
 }
 
 } // \compressor_detail

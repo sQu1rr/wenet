@@ -29,11 +29,11 @@ int main()
     client.setCompression<sq::wenet::compressor::Zlib>();
 
     auto hostname = "localhost"s;
-    auto& server = client.connect({hostname, 1238u});
+    auto server = client.connect({hostname, 1238u});
 
     bool work = true;
     while (work) {
-        client.service(time::ms{100}, [&work](Packet&& packet) {
+        client.service(100_ms, [&work](Packet&& packet) {
             auto data = unpack(packet.getData());
             if (data == "quit"s) work = false;
             cout << "[server] " << data << endl;

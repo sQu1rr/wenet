@@ -11,15 +11,19 @@ namespace wenet {
 
 namespace time {
 
-using ms = std::chrono::duration<uint32_t, std::milli>; // TODO literals
+using ms = std::chrono::duration<uint32_t, std::milli>;
 
 } // \time
 
 namespace speed {
 
-using bs = uint32_t; // bytes per second TODO literals
+using bs = uint32_t;
 
 } // \speed
+
+constexpr time::ms operator "" _ms(unsigned long long ms) {
+    return time::ms{ms};
+}
 
 } // \wenet
 

@@ -32,8 +32,8 @@ class Host {
     };
 
 public:
-    using Callback = Convw<void (Peer&, Packet&&, uint8_t)>;
-    using EventCallback = Convw<void (Peer&, uint32_t)>;
+    using Callback = Convw<void (Peer&&, Packet&&, uint8_t)>;
+    using EventCallback = Convw<void (Peer&&, uint32_t)>;
 
     class Exception : public std::runtime_error {
     public: using std::runtime_error::runtime_error;
@@ -53,14 +53,14 @@ public:
     Host(const Address& address, size_t peerCount);
     ~Host();
 
-    Peer& connect(const Address& address) noexcept;
+    Peer connect(const Address& address) noexcept;
 
     template <typename T>
-    Peer& connect(const Address& address, size_t channelCount, T data) noexcept
+    Peer connect(const Address& address, size_t channelCount, T data) noexcept
         { return connect(address, channelCount, static_cast<uint32_t>(data)); }
 
-    Peer& connect(const Address& address, size_t channelCount,
-                  uint32_t data=0) noexcept;
+    Peer connect(const Address& address, size_t channelCount,
+                 uint32_t data=0) noexcept;
 
     Bandwidth getBandwidthLimit() const noexcept;
     void setBandwidthLimit(const Bandwidth& bandwidth) noexcept;
@@ -70,30 +70,31 @@ public:
 
     void broadcast(Packet&& packet, uint8_t channelId=0) const noexcept;
 
+    void onReceive(Callback callback) noexcept;
     void onConnect(EventCallback callback) noexcept;
     void onDisconnect(EventCallback callback) noexcept;
 
-    void receive(Callback callback, bool once=false) noexcept;
-    void service(Callback callback, bool once=false) noexcept;
-    void service(time::ms timeout, Callback callback, bool once=false) noexcept;
+    bool receive(int limit=0) noexcept;
+    bool receive(Callback callback, int limit=0) noexcept;
+    bool service(int limit=0) noexcept;
+    bool service(time::ms timeout, int limit=0) noexcept;
+    bool service(Callback callback, int limit=0) noexcept;
+    bool service(time::ms timeout, Callback callback, int limit=0) noexcept;
 
     void flush();
 
     template <typename Comp> void setCompression();
     void disableCompression() noexcept;
 
-    // Checksum TODO wrapper
+    // Unwrapped callbacks
 
-    void onChecksum(decltype(ENetHost::checksum) callback) const noexcept;
-
-    // Intercept TODO wrapper
-
-    void onIntercept(decltype(ENetHost::intercept) callback) const noexcept;
+    void _onChecksum(decltype(ENetHost::checksum) callback) const noexcept;
+    void _onIntercept(decltype(ENetHost::intercept) callback) const noexcept;
 
     // Peers
 
-    size_t peerCount() const noexcept { return peers_.size(); }
-    const std::vector<Peer>& getPeers() const noexcept { return peers_; }
+    size_t peerCount() const noexcept { return host_->peerCount; }
+    std::vector<Peer> getPeers() const noexcept;
 
     // 1.3.9
 #if ENET_VERSION_CREATE(1, 3, 9) <= ENET_VERSION
@@ -123,14 +124,11 @@ public:
     uint32_t getTotalSentPackets() const noexcept;
 
 private:
-    void parseEvent(const Callback& callback);
-    Peer& createPeer(ENetPeer* peer) noexcept;
-    Peer& getPeer(ENetPeer* peer) noexcept;
-    void removePeer(const Peer& peer) noexcept;
+    void parseEvent();
 
 private:
     Address address_;
-    std::vector<Peer> peers_;
+    Callback cbReceive_;
     EventCallback cbConnect_;
     EventCallback cbDisconnect_;
     std::unique_ptr<ENetHost, Deleter> host_;

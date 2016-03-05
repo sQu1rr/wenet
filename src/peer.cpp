@@ -4,6 +4,11 @@ namespace sq {
 
 namespace wenet {
 
+void Peer::operator = (const Peer& peer)
+{
+    peer_ = peer.peer_;
+}
+
 // http://stackoverflow.com/a/7581655
 void Peer::operator = (Peer&& peer)
 {
@@ -101,6 +106,11 @@ void Peer::setTimeout(const Timeout& timeout) noexcept
 }
 
 // Info
+
+Peer::State Peer::getState() const noexcept
+{
+    return static_cast<State>(peer_.state);
+}
 
 speed::bs Peer::getIncomingBandwidth() const noexcept
 {

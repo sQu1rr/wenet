@@ -15,13 +15,10 @@ void Packet::Deleter::operator () (ENetPacket* packet) const noexcept
 
 Packet::Packet(ENetPacket& packet) noexcept : packet_(&packet) { }
 
-Packet::Packet(span<const byte> data, bool unreliable, bool allocate) noexcept
+Packet::Packet(span<const byte> data, Flags flags)
 {
-    uint flags = unreliable ? 0u : ENET_PACKET_FLAG_RELIABLE;
-    if (!allocate) flags |= ENET_PACKET_FLAG_NO_ALLOCATE;
-    create(data, flags);
+    create(data, convertFlags(flags));
 }
-
 
 Packet::Packet(Packet&& packet) noexcept
     : packet_(std::move(packet.packet_)) { }
@@ -59,9 +56,37 @@ Packet& Packet::operator << (span<const byte> data)
     return *this;
 }
 
+void Packet::setFlags(Flags flags) const
+{
+    if (!packet_) {
+        throw UninitialisedException{"Packet is not initialised yet"};
+    }
+    packet_->flags = convertFlags(flags);
+}
+
 span<byte> Packet::getData() const noexcept
 {
     return {packet_->data, static_cast<std::ptrdiff_t>(packet_->dataLength)};
+}
+
+Packet::Flags Packet::convertFlags(Flags flags) const
+{
+    if (!flags) {
+        throw FlagException{"Flags cannot be empty"};
+    }
+    if (flags & Flag::Unsequenced && flags & Flag::Reliable) {
+        throw FlagException{"Unsequenced packet cannot be reliable"};
+    }
+    if (flags & Flag::Fragment && flags & Flag::Reliable) {
+        throw FlagException{"Fragmented packets override reliability flag"};
+    }
+    if (flags & Flag::Unreliable && flags & Flag::Reliable) {
+        throw FlagException{"Packet is either reliable or unreliable"};
+    }
+    if (packet_ && flags & Flag::Unmanaged) {
+        throw FlagException{"Cannot modify unmanaged flag"};
+    }
+    return flags & ~Flag::Unreliable; // unreliable is a dummy flag
 }
 
 void Packet::create(span<const byte> data, uint32_t flags) noexcept

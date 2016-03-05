@@ -27,13 +27,28 @@ public:
         time::ms maximum;
     };
 
+    enum class State {
+        Disconnected = ENET_PEER_STATE_DISCONNECTED,
+        Connecting = ENET_PEER_STATE_CONNECTING,
+        AcknowledgingConnect = ENET_PEER_STATE_ACKNOWLEDGING_CONNECT,
+        ConnectionPending = ENET_PEER_STATE_CONNECTION_PENDING,
+        ConnectionSucceeded = ENET_PEER_STATE_CONNECTION_SUCCEEDED,
+        Connected = ENET_PEER_STATE_CONNECTED,
+        DisconnectLater = ENET_PEER_STATE_DISCONNECT_LATER,
+        Disconnecting = ENET_PEER_STATE_DISCONNECTING,
+        AcknowledgingDisconnect = ENET_PEER_STATE_ACKNOWLEDGING_DISCONNECT,
+        Zombie = ENET_PEER_STATE_ZOMBIE 
+    };
+
     using Callback = std::function<void (const Packet&, uint8_t)>;
 
 public:
-    Peer(ENetPeer& peer) noexcept : peer_(peer) { peer_.data = this; }
+    Peer(ENetPeer& peer) noexcept : peer_(peer) { }
+    Peer(const Peer& peer) = default;
     Peer(Peer&& peer) = default;
-    ~Peer() { peer_.data = nullptr; }
+    ~Peer() { }
 
+    void operator = (const Peer& peer);
     void operator = (Peer&& peer);
 
     operator ENetPeer* () const noexcept { return &peer_; }
@@ -82,6 +97,8 @@ public:
     // Info
 
     Address getAddress() const noexcept { return {peer_.address}; }
+
+    State getState() const noexcept;
 
     speed::bs getIncomingBandwidth() const noexcept;
     speed::bs getOutgoingBandwidth() const noexcept;
