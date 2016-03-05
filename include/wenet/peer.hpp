@@ -46,7 +46,6 @@ public:
     Peer(ENetPeer& peer) noexcept : peer_(peer) { }
     Peer(const Peer& peer) = default;
     Peer(Peer&& peer) = default;
-    ~Peer() { }
 
     void operator = (const Peer& peer);
     void operator = (Peer&& peer);
