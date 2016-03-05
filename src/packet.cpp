@@ -20,6 +20,11 @@ Packet::Packet(span<const byte> data, Flags flags)
     create(data, convertFlags(flags));
 }
 
+Packet::Packet(size_t size, Flags flags) noexcept
+{
+    packet_.reset(enet_packet_create(nullptr, size, convertFlags(flags)));
+}
+
 Packet::Packet(Packet&& packet) noexcept
     : packet_(std::move(packet.packet_)) { }
 
@@ -29,12 +34,14 @@ void Packet::operator = (span<const byte> data)
         throw UninitialisedException{"Packet is not initialised yet"};
     }
     if (packet_->flags & Flag::Unmanaged) {
-        throw UnmanagedException{"Packet data is manually managed"};
+        packet_->data = const_cast<byte*>(&data[0]);
     }
-    if (static_cast<size_t>(data.size()) != packet_->dataLength) {
-        enet_packet_resize(packet_.get(), data.size());
+    else {
+        if (static_cast<size_t>(data.size()) != packet_->dataLength) {
+            enet_packet_resize(packet_.get(), data.size());
+        }
+        std::copy(data.begin(), data.end(), packet_->data);
     }
-    std::copy(data.begin(), data.end(), packet_->data);
 }
 
 void Packet::operator = (Packet&& packet) noexcept
@@ -63,10 +70,11 @@ void Packet::setFlags(Flags flags) const
 
 void Packet::resize(size_t size) const
 {
-    if (packet_->flags & Flag::Unmanaged) {
-        throw UnmanagedException{"Packet data is manually managed"};
+    if (!packet_) {
+        throw UninitialisedException{"Packet is not initialised yet"};
     }
-    enet_packet_resize(packet_.get(), size);
+    if (packet_->flags & Flag::Unmanaged) packet_->dataLength = size;
+    else enet_packet_resize(packet_.get(), size);
 }
 
 span<byte> Packet::getData() const noexcept

@@ -19,6 +19,7 @@ Host::Host(size_t peerCount, const ENetAddress* address)
         }
     }
     host_.reset(enet_host_create(address, peerCount, 0u, 0u, 0u));
+    if (!host_) throw InitialisationException{"Cannot initialise host"};
 }
 
 Host::Host(const Address& address, size_t peerCount) : Host(peerCount, address)
@@ -42,6 +43,7 @@ Peer Host::connect(const Address& address, size_t channelCount,
                     uint32_t data) noexcept
 {
     auto peer = enet_host_connect(host_.get(), address, channelCount, data);
+    if (!peer) throw InitialisationException{"Cannot connect to peer"};
     return {*peer};
 }
 
