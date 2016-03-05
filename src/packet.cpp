@@ -47,11 +47,8 @@ Packet& Packet::operator << (span<const byte> data)
     if (!packet_) {
         throw UninitialisedException{"Packet is not initialised yet"};
     }
-    if (packet_->flags & Flag::Unmanaged) {
-        throw UnmanagedException{"Packet data is manually managed"};
-    }
     auto size = getSize();
-    enet_packet_resize(packet_.get(), size + data.size());
+    resize(size + data.size());
     std::copy(data.begin(), data.end(), packet_->data + size);
     return *this;
 }
@@ -62,6 +59,14 @@ void Packet::setFlags(Flags flags) const
         throw UninitialisedException{"Packet is not initialised yet"};
     }
     packet_->flags = convertFlags(flags);
+}
+
+void Packet::resize(size_t size) const
+{
+    if (packet_->flags & Flag::Unmanaged) {
+        throw UnmanagedException{"Packet data is manually managed"};
+    }
+    enet_packet_resize(packet_.get(), size);
 }
 
 span<byte> Packet::getData() const noexcept

@@ -52,6 +52,7 @@ public:
     Packet& operator << (span<const byte> data);
 
     void setFlags(Flags flags) const;
+    void resize(size_t size) const;
 
     span<byte> getData() const noexcept;
     size_t getSize() const noexcept { return packet_->dataLength; }
