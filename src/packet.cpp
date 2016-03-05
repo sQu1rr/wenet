@@ -28,7 +28,7 @@ void Packet::operator = (span<const byte> data)
     if (!packet_) {
         throw UninitialisedException{"Packet is not initialised yet"};
     }
-    if (packet_->flags & ENET_PACKET_FLAG_NO_ALLOCATE) {
+    if (packet_->flags & Flag::Unmanaged) {
         throw UnmanagedException{"Packet data is manually managed"};
     }
     if (static_cast<size_t>(data.size()) != packet_->dataLength) {
@@ -47,7 +47,7 @@ Packet& Packet::operator << (span<const byte> data)
     if (!packet_) {
         throw UninitialisedException{"Packet is not initialised yet"};
     }
-    if (packet_->flags & ENET_PACKET_FLAG_NO_ALLOCATE) {
+    if (packet_->flags & Flag::Unmanaged) {
         throw UnmanagedException{"Packet data is manually managed"};
     }
     auto size = getSize();
