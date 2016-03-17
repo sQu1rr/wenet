@@ -30,7 +30,7 @@ Packet::Packet(size_t size, Flags flags) noexcept
 Packet::Packet(ENetPacket& packet, bool manage) noexcept
     : packet_(&packet), packetOwned_(manage ? &packet : nullptr) { }
 
-void Packet::operator = (span<const byte> data)
+void Packet::operator = (span<const byte> data) const
 {
     throwIfLocked();
 
@@ -47,7 +47,7 @@ void Packet::operator = (span<const byte> data)
     }
 }
 
-Packet& Packet::operator << (span<const byte> data)
+const Packet& Packet::operator << (span<const byte> data) const
 {
     throwIfLocked();
     if (packet_->flags & Flag::Unmanaged) {
@@ -58,6 +58,23 @@ Packet& Packet::operator << (span<const byte> data)
     enet_packet_resize(packet_, size + data.size());
     std::copy(data.begin(), data.end(), packet_->data + size);
     return *this;
+}
+
+void Packet::onDestroy(const FreeCallback& callback) const noexcept
+{
+    if (packet_->userData) {
+        delete reinterpret_cast<FreeCallback*>(packet_->userData);
+        packet_->userData = nullptr;
+        packet_->freeCallback = nullptr;
+    }
+    if (callback) {
+        packet_->userData = new FreeCallback(callback);
+        packet_->freeCallback = [](ENetPacket* packet) {
+            auto callback = reinterpret_cast<FreeCallback*>(packet->userData);
+            (*callback)({*packet, false});
+            delete reinterpret_cast<FreeCallback*>(packet->userData);
+        };
+    }
 }
 
 void Packet::setFlags(Flags flags) const

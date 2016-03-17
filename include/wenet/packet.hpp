@@ -37,6 +37,8 @@ public:
     class FlagException : public Exception {
     public: using Exception::Exception;
     };
+
+    using FreeCallback = std::function<void (Packet&& packet)>;
     
 public:
     Packet() noexcept = default;
@@ -48,9 +50,11 @@ public:
 
     operator ENetPacket* () const noexcept { return packet_; }
 
-    void operator = (span<const byte> data);
+    void operator = (span<const byte> data) const;
 
-    Packet& operator << (span<const byte> data);
+    const Packet& operator << (span<const byte> data) const;
+
+    void onDestroy(const FreeCallback& callback) const noexcept;
 
     void setFlags(Flags flags) const;
     void resize(size_t size) const;
