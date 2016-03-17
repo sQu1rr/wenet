@@ -51,7 +51,6 @@ public:
 public:
     Host(size_t peerCount=1, const ENetAddress* address=nullptr);
     Host(const Address& address, size_t peerCount);
-    ~Host();
 
     Peer connect(const Address& address) noexcept;
 

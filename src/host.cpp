@@ -7,6 +7,8 @@ namespace wenet {
 void Host::Deleter::operator () (ENetHost* host) const noexcept
 {
     enet_host_destroy(host);
+
+    if (!--objects_) enet_deinitialize();
 }
 
 std::atomic<size_t> Host::objects_{0};
@@ -25,13 +27,6 @@ Host::Host(size_t peerCount, const ENetAddress* address)
 Host::Host(const Address& address, size_t peerCount) : Host(peerCount, address)
 {
     address_ = address;
-}
-
-Host::~Host()
-{
-    if (!--objects_) {
-        enet_deinitialize();
-    }
 }
 
 Peer Host::connect(const Address& address) noexcept
