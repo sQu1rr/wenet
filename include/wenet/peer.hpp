@@ -90,7 +90,7 @@ public:
 
     // Info
 
-    Address getAddress() const noexcept { return {peer_.address}; }
+    const Address getAddress() const noexcept { return {peer_.address}; }
 
     State getState() const noexcept;
 
