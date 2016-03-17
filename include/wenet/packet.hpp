@@ -48,6 +48,8 @@ public:
     Packet(size_t size, Flags flags) noexcept;
     Packet(ENetPacket& packet) noexcept;
 
+    operator ENetPacket* () const noexcept { return packet_; }
+
     void operator = (span<const byte> data);
 
     Packet& operator << (span<const byte> data);
@@ -58,7 +60,6 @@ public:
     span<byte> getData() const noexcept;
     size_t getSize() const noexcept { return packet_->dataLength; }
 
-    operator ENetPacket* () const noexcept { return packet_; }
     void releaseOwnership() noexcept { packetOwned_.release(); }
 
     bool isInit() const noexcept { return packet_; }
