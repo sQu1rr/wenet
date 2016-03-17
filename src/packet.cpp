@@ -41,11 +41,6 @@ void Packet::operator = (span<const byte> data)
     }
 }
 
-void Packet::operator = (Packet&& packet) noexcept
-{
-    packet_ = std::move(packet.packet_);
-}
-
 Packet& Packet::operator << (span<const byte> data)
 {
     if (!packet_) {

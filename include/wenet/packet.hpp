@@ -49,7 +49,6 @@ public:
     Packet(ENetPacket& packet) noexcept;
 
     void operator = (span<const byte> data);
-    void operator = (Packet&& packet) noexcept;
 
     Packet& operator << (span<const byte> data);
 
