@@ -116,7 +116,7 @@ public:
 
     // Info
 
-    const Address &getAddress() const noexcept { return address_; }
+    const Address& getAddress() const noexcept { return address_; }
 
     uint32_t getTotalReceivedData() const noexcept;
     uint32_t getTotalReceivedPackets() const noexcept;
