@@ -40,11 +40,9 @@ public:
     
 public:
     Packet() noexcept = default;
-    Packet(span<const byte> data, Flag flag=Flag::Reliable)
-        : Packet(data, belks::underlying_cast(flag)) { }
+    Packet(span<const byte> data, Flag flag=Flag::Reliable);
     Packet(span<const byte> data, Flags flags);
-    Packet(size_t size, Flag flag=Flag::Reliable)
-        : Packet(size, belks::underlying_cast(flag)) { }
+    Packet(size_t size, Flag flag=Flag::Reliable);
     Packet(size_t size, Flags flags) noexcept;
     Packet(ENetPacket& packet) noexcept;
 

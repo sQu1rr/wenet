@@ -13,16 +13,22 @@ void Packet::Deleter::operator () (ENetPacket* packet) const noexcept
     enet_packet_destroy(packet);
 }
 
-Packet::Packet(ENetPacket& packet) noexcept
-    : packet_(&packet), packetOwned_(&packet) { }
+Packet::Packet(span<const byte> data, Flag flag)
+    : Packet(data, belks::underlying_cast(flag)) { }
 
 Packet::Packet(span<const byte> data, Flags flags)
 {
     create(data, convertFlags(flags));
 }
 
+Packet::Packet(size_t size, Flag flag)
+    : Packet(size, belks::underlying_cast(flag)) { }
+
 Packet::Packet(size_t size, Flags flags) noexcept
     : Packet(*enet_packet_create(nullptr, size, convertFlags(flags))) { }
+
+Packet::Packet(ENetPacket& packet) noexcept
+    : packet_(&packet), packetOwned_(&packet) { }
 
 void Packet::operator = (span<const byte> data)
 {
