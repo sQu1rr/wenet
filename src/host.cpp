@@ -217,13 +217,16 @@ void Host::parseEvent()
 {
     auto peer = event_.peer;
     if (event_.type == ENET_EVENT_TYPE_CONNECT) {
+        // Connect
         if (cbConnect_) cbConnect_(createPeer(*peer), event_.data);
     }
     else {
         if (event_.type == ENET_EVENT_TYPE_RECEIVE) {
+            // Receive
             cbReceive_(getPeer(*peer), {*event_.packet}, event_.channelID);
         }
         else {
+            // Disconnect
             if (cbDisconnect_) cbDisconnect_(getPeer(*peer), event_.data);
             removePeer(*peer);
         }

@@ -48,6 +48,8 @@ public:
 
     operator ENetPeer* () const noexcept { return peer_; }
 
+    size_t getId() const noexcept { return size_t(this); }
+
     // Disconnect
 
     void disconnect(uint32_t data=0) const noexcept;

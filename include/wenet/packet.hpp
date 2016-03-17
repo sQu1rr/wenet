@@ -44,7 +44,7 @@ public:
     Packet(span<const byte> data, Flags flags);
     Packet(size_t size, Flag flag=Flag::Reliable);
     Packet(size_t size, Flags flags) noexcept;
-    Packet(ENetPacket& packet) noexcept;
+    Packet(ENetPacket& packet, bool manage=true) noexcept;
 
     operator ENetPacket* () const noexcept { return packet_; }
 

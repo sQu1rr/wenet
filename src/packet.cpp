@@ -27,8 +27,8 @@ Packet::Packet(size_t size, Flag flag)
 Packet::Packet(size_t size, Flags flags) noexcept
     : Packet(*enet_packet_create(nullptr, size, convertFlags(flags))) { }
 
-Packet::Packet(ENetPacket& packet) noexcept
-    : packet_(&packet), packetOwned_(&packet) { }
+Packet::Packet(ENetPacket& packet, bool manage) noexcept
+    : packet_(&packet), packetOwned_(manage ? &packet : nullptr) { }
 
 void Packet::operator = (span<const byte> data)
 {
