@@ -8,6 +8,7 @@
 #include "wenet/units.hpp"
 #include "wenet/address.hpp"
 #include "wenet/packet.hpp"
+#include "convw/convw.hpp"
 
 namespace sq {
 
@@ -40,29 +41,19 @@ public:
         Zombie = ENET_PEER_STATE_ZOMBIE 
     };
 
-    using Callback = std::function<void (const Packet&, uint8_t)>;
+    using Callback = convw::Convw<void (const Packet&, uint8_t)>;
 
 public:
-    Peer(ENetPeer& peer) noexcept : peer_(peer) { }
+    Peer(ENetPeer& peer) noexcept : peer_(&peer), address_(peer.address) { }
 
-    operator ENetPeer* () const noexcept { return &peer_; }
+    operator ENetPeer* () const noexcept { return peer_; }
 
     // Disconnect
 
-    template <typename T>
-    void disconnect(T data) const noexcept { disconnect(uint32_t(data)); }
     void disconnect(uint32_t data=0) const noexcept;
-
-    template <typename T>
-    void disconnectNow(T data) const noexcept { disconnectNow(uint32_t(data)); }
     void disconnectNow(uint32_t data=0) const noexcept;
-
-    template <typename T>
-    void disconnectLater(T data) const noexcept
-        { disconnectLater(uint32_t(data)); }
     void disconnectLater(uint32_t data=0) const noexcept;
-
-    void dropConnection() const noexcept;
+    void drop() const noexcept;
 
     // Ping
 
@@ -72,7 +63,7 @@ public:
 
     // Receive
 
-    void receive(const Callback& callback) const noexcept;
+    void receive(Callback callback) const noexcept;
 
     // Send
 
@@ -91,7 +82,7 @@ public:
 
     // Info
 
-    const Address getAddress() const noexcept { return {peer_.address}; }
+    const Address& getAddress() const noexcept { return address_; }
 
     State getState() const noexcept;
 
@@ -101,7 +92,8 @@ public:
     uint32_t getPacketLoss() const noexcept;
 
 private:
-    ENetPeer& peer_;
+    ENetPeer* peer_;
+    Address address_;
 };
 
 } // \wenet

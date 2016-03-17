@@ -9,6 +9,7 @@
 #include <functional>
 #include <vector>
 #include <atomic>
+#include <unordered_map>
 
 #include "wenet/peer.hpp"
 #include "wenet/units.hpp"
@@ -21,9 +22,9 @@ namespace sq {
 
 namespace wenet {
 
-using convw::Convw;
-
 class Host {
+    friend class Peer;
+
     struct Deleter { void operator () (ENetHost* host) const noexcept; };
 
     struct Bandwidth {
@@ -32,8 +33,8 @@ class Host {
     };
 
 public:
-    using Callback = Convw<void (Peer&&, Packet&&, uint8_t)>;
-    using EventCallback = Convw<void (Peer&&, uint32_t)>;
+    using Callback = convw::Convw<void (Peer&, Packet&&, uint8_t)>;
+    using EventCallback = convw::Convw<void (Peer&, uint32_t)>;
 
     class Exception : public std::runtime_error {
     public: using std::runtime_error::runtime_error;
@@ -93,8 +94,8 @@ public:
 
     // Peers
 
-    size_t peerCount() const noexcept { return host_->peerCount; }
-    std::vector<Peer> getPeers() const noexcept;
+    size_t peerCount() const noexcept { return peers_.size(); }
+    std::vector<Peer>& getPeers() noexcept { return peers_; }
 
     // 1.3.9
 #if ENET_VERSION_CREATE(1, 3, 9) <= ENET_VERSION
@@ -126,6 +127,12 @@ public:
 private:
     void parseEvent();
 
+    Peer& getPeer(ENetPeer& peer) noexcept;
+    Peer& createPeer(ENetPeer& peer) noexcept;
+    void removePeer(ENetPeer& peer) noexcept;
+
+    static Host& retrieve(ENetHost* host) noexcept { return *hosts_[host]; }
+
 private:
     Address address_;
     Callback cbReceive_;
@@ -133,9 +140,11 @@ private:
     EventCallback cbDisconnect_;
     std::unique_ptr<ENetHost, Deleter> host_;
     std::unique_ptr<Compressor> compressor_;
+    std::vector<Peer> peers_;
     ENetEvent event_;
 
     static std::atomic<size_t> objects_;
+    static std::unordered_map<ENetHost*, Host*> hosts_;
 };
 
 template <typename Comp>

@@ -6,12 +6,14 @@ namespace wenet {
 
 void Host::Deleter::operator () (ENetHost* host) const noexcept
 {
+    hosts_.erase(host);
     enet_host_destroy(host);
 
     if (!--objects_) enet_deinitialize();
 }
 
 std::atomic<size_t> Host::objects_{0};
+std::unordered_map<ENetHost*, Host*> Host::hosts_;
 
 Host::Host(size_t peerCount, const ENetAddress* address)
 {
@@ -22,6 +24,8 @@ Host::Host(size_t peerCount, const ENetAddress* address)
     }
     host_.reset(enet_host_create(address, peerCount, 0u, 0u, 0u));
     if (!host_) throw InitialisationException{"Cannot initialise host"};
+
+    hosts_[host_.get()] = this;
 }
 
 Host::Host(const Address& address, size_t peerCount) : Host(peerCount, address)
@@ -39,7 +43,7 @@ Peer Host::connect(const Address& address, size_t channelCount,
 {
     auto peer = enet_host_connect(host_.get(), address, channelCount, data);
     if (!peer) throw InitialisationException{"Cannot connect to peer"};
-    return {*peer};
+    return createPeer(*peer);
 }
 
 Host::Bandwidth Host::getBandwidthLimit() const noexcept
@@ -151,15 +155,6 @@ void Host::_onIntercept(decltype(ENetHost::intercept) callback) const noexcept
     host_->intercept = callback;
 }
 
-std::vector<Peer> Host::getPeers() const noexcept
-{
-    std::vector<Peer> peers; peers.reserve(peerCount());
-    for (auto i = 0u; i < peerCount(); ++i) {
-        peers.emplace_back(host_->peers[i]);
-    }
-    return peers;
-}
-
 #if ENET_VERSION_CREATE(1, 3, 9) <= ENET_VERSION
 
 size_t getDuplicatePeers() const noexcept
@@ -220,17 +215,41 @@ uint32_t Host::getTotalSentPackets() const noexcept
 
 void Host::parseEvent()
 {
+    auto peer = event_.peer;
     if (event_.type == ENET_EVENT_TYPE_CONNECT) {
-        if (cbConnect_) cbConnect_({*event_.peer}, event_.data);
+        if (cbConnect_) cbConnect_(createPeer(*peer), event_.data);
     }
     else {
         if (event_.type == ENET_EVENT_TYPE_RECEIVE) {
-            cbReceive_({*event_.peer}, {*event_.packet}, event_.channelID);
+            cbReceive_(getPeer(*peer), {*event_.packet}, event_.channelID);
         }
         else {
-            if (cbDisconnect_) cbDisconnect_({*event_.peer}, event_.data);
+            if (cbDisconnect_) cbDisconnect_(getPeer(*peer), event_.data);
+            removePeer(*peer);
         }
     }
+}
+
+Peer& Host::getPeer(ENetPeer& peer) noexcept
+{
+    return peers_[size_t(peer.data)];
+}
+
+Peer& Host::createPeer(ENetPeer& peer) noexcept
+{
+    peer.data = reinterpret_cast<void*>(peers_.size());
+    peers_.emplace_back(peer);
+    return peers_.back();
+}
+
+void Host::removePeer(ENetPeer& peer) noexcept
+{
+    auto index = size_t(peer.data);
+
+    std::swap(peers_[index], peers_.back());
+
+    peers_.pop_back();
+    peer.data = nullptr;
 }
 
 } // \network
