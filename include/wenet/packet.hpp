@@ -47,7 +47,6 @@ public:
         : Packet(size, belks::underlying_cast(flag)) { }
     Packet(size_t size, Flags flags) noexcept;
     Packet(ENetPacket& packet) noexcept;
-    Packet(Packet&& packet) noexcept;
 
     void operator = (span<const byte> data);
     void operator = (Packet&& packet) noexcept;

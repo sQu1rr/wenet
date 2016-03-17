@@ -25,9 +25,6 @@ Packet::Packet(size_t size, Flags flags) noexcept
     packet_.reset(enet_packet_create(nullptr, size, convertFlags(flags)));
 }
 
-Packet::Packet(Packet&& packet) noexcept
-    : packet_(std::move(packet.packet_)) { }
-
 void Packet::operator = (span<const byte> data)
 {
     if (!packet_) {

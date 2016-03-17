@@ -4,18 +4,6 @@ namespace sq {
 
 namespace wenet {
 
-void Peer::operator = (const Peer& peer)
-{
-    peer_ = peer.peer_;
-}
-
-// http://stackoverflow.com/a/7581655
-void Peer::operator = (Peer&& peer)
-{
-    this->~Peer();
-    new (this)Peer(std::move(peer));
-}
-
 // Disconnect
 
 void Peer::disconnect(uint32_t data) const noexcept

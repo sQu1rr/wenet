@@ -44,11 +44,6 @@ public:
 
 public:
     Peer(ENetPeer& peer) noexcept : peer_(peer) { }
-    Peer(const Peer& peer) = default;
-    Peer(Peer&& peer) = default;
-
-    void operator = (const Peer& peer);
-    void operator = (Peer&& peer);
 
     operator ENetPeer* () const noexcept { return &peer_; }
 
