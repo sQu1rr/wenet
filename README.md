@@ -151,13 +151,13 @@ unreliable delivery, so no retry attempts will be made nor acknowledgements
 generated.
 
 A packet may be resized (extended or truncated) with packet.resize(). Or by
-adding additional data using operator <<.
+adding additional data using operator <<. For obvious reasons this operator will
+throw if tried to use on unmanaged packet.
 
 A packet is sent to a foreign host with peer.send(). peer.send() accepts a
 channel id over which to send the packet to a given peer. Once the packet is
 handed over to Wenet with peer.send(), Wenet will handle its deallocation
-automatically thus it requires packet to be moved into send and should not be
-used afterwards. (TODO: how about sending to couple of people)
+automatically.
 
 One may also use host.broadcast() to send a packet to all connected
 peers on a given host over a specified channel id, as with peer.send().
@@ -174,7 +174,7 @@ Packet packet{pack(data)};
 data = "packetfoo";
 packet = pack(data); // will resize and copy
 
-peer.send(std::move(packet));
+peer.send(packet);
 host.flush();
 ```
 
@@ -298,7 +298,7 @@ int main()
         server.service(1000_ms, [&work](Peer&& peer, Packet&& packet) {
             auto data = unpack(packet.getData());
             cout << descClient(peer) << data << endl;
-            peer.send(std::move(packet));
+            peer.send(packet);
             if (data == "quit"s) work = false;
         });
     }

@@ -58,9 +58,16 @@ void Host::setChannelLimit(size_t limit) noexcept
     enet_host_channel_limit(host_.get(), limit);
 }
 
+void Host::broadcast(Packet& packet, uint8_t channelId) const noexcept
+{
+    if (packet.isOwned()) packet.releaseOwnership();
+    enet_host_broadcast(host_.get(), channelId, packet);
+}
+
 void Host::broadcast(Packet&& packet, uint8_t channelId) const noexcept
 {
-    enet_host_broadcast(host_.get(), channelId, packet.releasePacket());
+    packet.releaseOwnership();
+    enet_host_broadcast(host_.get(), channelId, packet);
 }
 
 void Host::onReceive(Callback callback) noexcept

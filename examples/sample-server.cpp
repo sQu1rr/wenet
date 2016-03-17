@@ -35,7 +35,7 @@ int main()
         server.service(1000_ms, [&work](Peer&& peer, Packet&& packet) {
             auto data = unpack(packet.getData());
             cout << descClient(peer) << data << endl;
-            peer.send(std::move(packet));
+            peer.send(packet);
             if (data == "quit"s) work = false;
         });
     }

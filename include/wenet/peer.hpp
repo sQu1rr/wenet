@@ -76,6 +76,7 @@ public:
 
     // Send
 
+    void send(Packet& packet, uint8_t channelId=0) const noexcept;
     void send(Packet&& packet, uint8_t channelId=0) const noexcept;
 
     // Throttle

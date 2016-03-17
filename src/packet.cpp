@@ -13,7 +13,8 @@ void Packet::Deleter::operator () (ENetPacket* packet) const noexcept
     enet_packet_destroy(packet);
 }
 
-Packet::Packet(ENetPacket& packet) noexcept : packet_(&packet) { }
+Packet::Packet(ENetPacket& packet) noexcept
+    : packet_(&packet), packetOwned_(&packet) { }
 
 Packet::Packet(span<const byte> data, Flags flags)
 {
@@ -21,21 +22,20 @@ Packet::Packet(span<const byte> data, Flags flags)
 }
 
 Packet::Packet(size_t size, Flags flags) noexcept
-{
-    packet_.reset(enet_packet_create(nullptr, size, convertFlags(flags)));
-}
+    : Packet(*enet_packet_create(nullptr, size, convertFlags(flags))) { }
 
 void Packet::operator = (span<const byte> data)
 {
-    if (!packet_) {
-        throw UninitialisedException{"Packet is not initialised yet"};
-    }
+    throwIfLocked();
+
     if (packet_->flags & Flag::Unmanaged) {
+        // const cast is ok here because enet should not modify data
+        // and the type being non-const seems like an oversight
         packet_->data = const_cast<byte*>(&data[0]);
     }
     else {
-        if (static_cast<size_t>(data.size()) != packet_->dataLength) {
-            enet_packet_resize(packet_.get(), data.size());
+        if (size_t(data.size()) != packet_->dataLength) {
+            enet_packet_resize(packet_, data.size());
         }
         std::copy(data.begin(), data.end(), packet_->data);
     }
@@ -43,35 +43,38 @@ void Packet::operator = (span<const byte> data)
 
 Packet& Packet::operator << (span<const byte> data)
 {
-    if (!packet_) {
-        throw UninitialisedException{"Packet is not initialised yet"};
+    throwIfLocked();
+    if (packet_->flags & Flag::Unmanaged) {
+        throw FlagException{"Cannot modify unmanaged packet"};
     }
+    
     auto size = getSize();
-    resize(size + data.size());
+    enet_packet_resize(packet_, size + data.size());
     std::copy(data.begin(), data.end(), packet_->data + size);
     return *this;
 }
 
 void Packet::setFlags(Flags flags) const
 {
-    if (!packet_) {
-        throw UninitialisedException{"Packet is not initialised yet"};
+    throwIfLocked();
+
+    if (flags & Flag::Unmanaged) {
+        throw FlagException{"Cannot modify unmanaged flag"};
     }
     packet_->flags = convertFlags(flags);
 }
 
 void Packet::resize(size_t size) const
 {
-    if (!packet_) {
-        throw UninitialisedException{"Packet is not initialised yet"};
-    }
+    throwIfLocked();
+
     if (packet_->flags & Flag::Unmanaged) packet_->dataLength = size;
-    else enet_packet_resize(packet_.get(), size);
+    else enet_packet_resize(packet_, size);
 }
 
 span<byte> Packet::getData() const noexcept
 {
-    return {packet_->data, static_cast<std::ptrdiff_t>(packet_->dataLength)};
+    return {packet_->data, std::ptrdiff_t(packet_->dataLength)};
 }
 
 Packet::Flags Packet::convertFlags(Flags flags) const
@@ -88,9 +91,6 @@ Packet::Flags Packet::convertFlags(Flags flags) const
     if (flags & Flag::Unreliable && flags & Flag::Reliable) {
         throw FlagException{"Packet is either reliable or unreliable"};
     }
-    if (packet_ && flags & Flag::Unmanaged) {
-        throw FlagException{"Cannot modify unmanaged flag"};
-    }
     return flags & ~Flag::Unreliable; // unreliable is a dummy flag
 }
 
@@ -99,9 +99,20 @@ void Packet::create(span<const byte> data, uint32_t flags) noexcept
     const bool noAlloc = flags & ENET_PACKET_FLAG_NO_ALLOCATE;
     const byte* initialData = noAlloc ? &data[0] : nullptr;
 
-    packet_.reset(enet_packet_create(initialData, data.size(), flags));
+    packetOwned_.reset(enet_packet_create(initialData, data.size(), flags));
+    packet_ = packetOwned_.get();
 
     if (!noAlloc) std::copy(data.begin(), data.end(), packet_->data);
+}
+
+void Packet::throwIfLocked() const
+{
+    if (!packetOwned_.get()) {
+        if (!packet_) {
+            throw UninitialisedException{"Packet is not initialised yet"};
+        }
+        else throw UninitialisedException{"Packet cannot be modified"};
+    }
 }
 
 } // \network

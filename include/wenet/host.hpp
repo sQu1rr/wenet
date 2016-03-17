@@ -67,6 +67,7 @@ public:
     size_t getChannelLimit() const noexcept { return host_->channelLimit; }
     void setChannelLimit(size_t limit) noexcept;
 
+    void broadcast(Packet& packet, uint8_t channelId=0) const noexcept;
     void broadcast(Packet&& packet, uint8_t channelId=0) const noexcept;
 
     void onReceive(Callback callback) noexcept;

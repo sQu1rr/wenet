@@ -58,15 +58,21 @@ public:
     span<byte> getData() const noexcept;
     size_t getSize() const noexcept { return packet_->dataLength; }
 
-    ENetPacket* getPacket() const noexcept { return packet_.get(); }
-    ENetPacket* releasePacket() noexcept { return packet_.release(); }
+    operator ENetPacket* () const noexcept { return packet_; }
+    void releaseOwnership() noexcept { packetOwned_.release(); }
+
+    bool isInit() const noexcept { return packet_; }
+    bool isOwned() const noexcept { return packetOwned_.get(); }
 
 private:
     Flags convertFlags(Flags flags) const;
     void create(span<const byte> data, uint32_t flags) noexcept;
 
+    void throwIfLocked() const;
+
 private:
-    std::unique_ptr<ENetPacket, Deleter> packet_;
+    ENetPacket* packet_ = nullptr;
+    std::unique_ptr<ENetPacket, Deleter> packetOwned_;
 };
 
 constexpr auto operator | (Packet::Flag flag1, Packet::Flag flag2) noexcept

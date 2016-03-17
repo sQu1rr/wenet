@@ -54,9 +54,16 @@ void Peer::receive(const Callback& callback) const noexcept
 
 // Send
 
+void Peer::send(Packet& packet, uint8_t channelId) const noexcept
+{
+    if (packet.isOwned()) packet.releaseOwnership();
+    enet_peer_send(&peer_, channelId, packet);
+}
+
 void Peer::send(Packet&& packet, uint8_t channelId) const noexcept
 {
-    enet_peer_send(&peer_, channelId, packet.releasePacket());
+    packet.releaseOwnership();
+    enet_peer_send(&peer_, channelId, packet);
 }
 
 // Throttle
