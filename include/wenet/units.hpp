@@ -21,7 +21,8 @@ using bs = uint32_t;
 
 } // \speed
 
-constexpr time::ms operator "" _ms(unsigned long long ms) {
+constexpr time::ms operator "" _ms(unsigned long long ms)
+{
     return time::ms{ms};
 }
 
