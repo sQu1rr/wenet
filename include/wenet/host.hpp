@@ -32,7 +32,8 @@ class Host {
 
 public:
     using Callback = convw::Convw<void (Peer&, Packet&&, uint8_t)>;
-    using EventCallback = convw::Convw<void (Peer&, uint32_t)>;
+    using ConnectCallback = convw::Convw<void (Peer&, uint32_t)>;
+    using DisconnectCallback = convw::Convw<void (size_t, uint32_t)>;
 
     class Exception : public std::runtime_error {
     public: using std::runtime_error::runtime_error;
@@ -72,8 +73,8 @@ public:
     void broadcast(Packet&& packet, uint8_t channelId=0) const noexcept;
 
     void onReceive(Callback callback) noexcept;
-    void onConnect(EventCallback callback) noexcept;
-    void onDisconnect(EventCallback callback) noexcept;
+    void onConnect(ConnectCallback callback) noexcept;
+    void onDisconnect(DisconnectCallback callback) noexcept;
 
     bool receive(int limit=0) noexcept;
     bool receive(Callback callback, int limit=0) noexcept;
@@ -138,8 +139,8 @@ private:
 private:
     Address address_;
     Callback cbReceive_;
-    EventCallback cbConnect_;
-    EventCallback cbDisconnect_;
+    ConnectCallback cbConnect_;
+    DisconnectCallback cbDisconnect_;
     std::unique_ptr<ENetHost, Deleter> host_;
     std::unique_ptr<Compressor> compressor_;
     std::vector<Peer> peers_;

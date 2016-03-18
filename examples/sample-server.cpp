@@ -9,7 +9,8 @@ using namespace sq::wenet;
 string descClient(const Peer& peer)
 {
     auto addr = peer.getAddress();
-    return "["s + addr.getIp() + ":" + to_string(addr.getPort()) + "] "s;
+    auto name = "["s + addr.getIp() + ":" + to_string(addr.getPort()) + "]";
+    return name + "#" + std::to_string(peer.getId()) + " ";
 }
 
 string unpack(span<const byte> data) { return {data.begin(), data.end()}; }
@@ -24,8 +25,8 @@ int main()
         peer.setPingInterval(500_ms);
     });
 
-    server.onDisconnect([](Peer& peer) {
-        cout << descClient(peer) << "Disconnected" << endl;
+    server.onDisconnect([](size_t peerId) {
+        cout << "#" << peerId << " Disconnected" << endl;
     });
 
     server.setCompression<sq::wenet::compressor::Zlib>();

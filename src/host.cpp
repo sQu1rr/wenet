@@ -79,12 +79,12 @@ void Host::onReceive(Callback callback) noexcept
     cbReceive_ = std::move(callback);
 }
 
-void Host::onConnect(EventCallback callback) noexcept
+void Host::onConnect(ConnectCallback callback) noexcept
 {
     cbConnect_ = std::move(callback);
 }
 
-void Host::onDisconnect(EventCallback callback) noexcept
+void Host::onDisconnect(DisconnectCallback callback) noexcept
 {
     cbDisconnect_ = std::move(callback);
 }
@@ -233,7 +233,9 @@ void Host::parseEvent()
         }
         else {
             // Disconnect
-            if (cbDisconnect_) cbDisconnect_(getPeer(*peer), event_.data);
+            if (cbDisconnect_) {
+                cbDisconnect_(getPeer(*peer).getId(), event_.data);
+            }
             removePeer(*peer);
         }
     }
