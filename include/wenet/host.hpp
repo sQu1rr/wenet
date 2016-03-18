@@ -63,8 +63,8 @@ public:
     Peer connect(const Address& address, size_t channelCount,
                  uint32_t data=0) noexcept;
 
-    Bandwidth getBandwidthLimit() const noexcept;
-    void setBandwidthLimit(const Bandwidth& bandwidth) noexcept;
+    Bandwidth getBandwidth() const noexcept;
+    void setBandwidth(const Bandwidth& bandwidth) noexcept;
 
     size_t getChannelLimit() const noexcept { return host_->channelLimit; }
     void setChannelLimit(size_t limit) noexcept;

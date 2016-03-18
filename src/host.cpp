@@ -46,12 +46,12 @@ Peer Host::connect(const Address& address, size_t channelCount,
     return createPeer(*peer);
 }
 
-Host::Bandwidth Host::getBandwidthLimit() const noexcept
+Host::Bandwidth Host::getBandwidth() const noexcept
 {
     return {host_->incomingBandwidth, host_->outgoingBandwidth};
 }
 
-void Host::setBandwidthLimit(const Bandwidth& bandwidth) noexcept
+void Host::setBandwidth(const Bandwidth& bandwidth) noexcept
 {
     enet_host_bandwidth_limit(host_.get(), bandwidth.incoming,
                               bandwidth.outgoing);

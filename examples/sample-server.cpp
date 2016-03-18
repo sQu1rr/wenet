@@ -17,20 +17,25 @@ string unpack(span<const byte> data) { return {data.begin(), data.end()}; }
 
 int main()
 {
-    Host server{{1238u}, 32};
+    const auto port = 1238u;
 
+    // Create server
+    Host server{{port}, 32};
+    server.setCompression<sq::wenet::compressor::Zlib>();
+
+    // Connect
     server.onConnect([](Peer& peer) {
         cout << descClient(peer) << "Connected" << endl;
         peer.setTimeout({1000_ms, 0_ms, 1000_ms});
         peer.setPingInterval(500_ms);
     });
 
+    // Disconnect
     server.onDisconnect([](size_t peerId) {
         cout << "#" << peerId << " Disconnected" << endl;
     });
 
-    server.setCompression<sq::wenet::compressor::Zlib>();
-
+    // Receive
     bool work = true;
     server.onReceive([&work](Peer& peer, Packet&& packet) {
         auto data = unpack(packet.getData());
@@ -39,5 +44,6 @@ int main()
         if (data == "quit"s) work = false;
     });
 
+    // Work
     while (work) server.service(1000_ms);
 }

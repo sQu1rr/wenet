@@ -14,7 +14,7 @@ include &lt;wenet.hpp&gt; without the directory prefix, as this may cause
 file name conflicts on some systems.
 
 No further steps are required, initialisation is handled automatically when host
-is created and deinitialistaion happens after last host is destroyed
+is created and deinitialistaion happens after last host is destroyed.
 
 ```cpp
 #include <wenet/wenet.hpp>
@@ -41,7 +41,8 @@ cannot be initialised.
 ## Creating a Wenet client
 
 Clients in Wenet are similarly constructed with Host{} class, when no address
-is specified to bind the host to. The peer count controls the maximum number of connections to other server hosts that may be simultaneously open.
+is specified to bind the host to. The peer count controls the maximum number of
+connections to other server hosts that may be simultaneously open.
 
 ```cpp
 Host client{}; // peer count defaults to 1 if no number is given
@@ -56,7 +57,9 @@ not specifying these two options will cause Wenet to rely entirely upon its
 dynamic throttling algorithm to manage bandwidth.
 
 ```cpp
-host.setBandwidth(/* incoming */, /* outgoing */);
+host.setBandwidth({/* incoming */, /* outgoing */});
+
+host.getBandwidth(); // will return struct { incoming, outgoing }
 ```
 
 You may also limit the maximum number of channels that will be used for
@@ -68,21 +71,23 @@ host.setChannelLimit(/* number of channels */);
 
 ## Managing Wenet host
 
-Wenet uses a polled event model to notify the programmer of significant events.
-Wenet hosts are polled for events with host.service(), where an optional
+Wenet uses a callback event model to notify the programmer of significant
+events. Wenet hosts are polled for events with host.service(), where an optional
 timeout value in milliseconds may be specified to control how long
 Wenet will poll; if a timeout of 0 is specified, host.service() will return
 immediately if there are no events to dispatch. host.service() will return true
-if an event was dispatched within the specified timeout.
+if event(s) were dispatched within the specified timeout.
 
 Beware that most processing of the network with the Wenet stack is done inside
 host.service(). Both hosts that make up the sides of a connection must
 regularly call this function to ensure packets are actually sent and received.
-A common symptom of not actively calling enet_host_service() on both ends is
+A common symptom of not actively calling host.service() on both ends is
 that one side receives events while the other does not. The best way to schedule
 this activity to ensure adequate service is, for example, to call
 host.service() with a 0 timeout (meaning non-blocking) at the beginning of
 every frame in a game loop.
+
+## Callbacks
 
 Currently there are only three types of significant events in Wenet, and to
 intercept them callbacks should be provided.
@@ -92,13 +97,13 @@ server host or when an attempt to establish a connection with a foreign host
 has succeeded. Callback can receive Peer and optional data (uint32_t).
 
 - onDisconnect - is called when a connected peer has either explicitly
-disconnected or timed out. Callback can receive Peer and optional data.
+disconnected or timed out. Callback can receive Peer ID and optional data.
 
 - onReceive - is called when a packet is received from a connected peer.
 Callback can receive Peer, Packet and channel id.
 
 Any number of arguments can be omitted thanks to
-[Convw](https://github.com/sQu1rr/convw)
+[Convw](https://github.com/sQu1rr/convw).
 
 ```cpp
 host.onConnect([](Peer&& peer, uint32_t data) {
@@ -106,8 +111,7 @@ host.onConnect([](Peer&& peer, uint32_t data) {
     cout << "A new client connected from: " << address.getIp()
          << ":" << address.getPort() << " with data: " << data;
 });
-host.onDisconnect([](Peer&& peer, uint32_t data) {
-    // user data TODO
+host.onDisconnect([](size_t id, uint32_t data) {
     cout << "Disconnected data: " << data << endl;
 });
 host.onReceive([](Peer&& peer, Packet&& packet, uint8_t channelId) {
@@ -116,20 +120,37 @@ host.onReceive([](Peer&& peer, Packet&& packet, uint8_t channelId) {
 host.service(1000_ms); // wait 1000 ms for an event
 ```
 
-While onConnect and onDisconnect must be specified before servicing the host,
-onReceive may also be given to host.service() function instead of defining it
-beforehand. This, however affects the performance and thus not recommended.
-
-By default host.service() will handle all pending events before returning, it
-can be overriden with optional limit argument
+An optional limit can be specified that will limit the number of events
+processed in one go. by default all pending events are processed which means
+that in theory this function can never return and process events forever,
+since new incoming events may arrive.
 
 ```cpp
 // only handle one event at a time
-while (true) host.service([](Packet&&) {}, 1);
+while (true) host.service(1);
 ```
 
-**Be aware**: Peer is invalidated on each call to host.service() and is not
-guaranteed to exist thus should not be saved inbetween host.service() calls
+**Be aware**: Peer is potentially invalidated on each call to host.service()
+and is not guaranteed to exist thus should not be saved inbetween host.service()
+calls.
+
+## User management
+
+The idea was to separate the concerns thus peer has getId() method which returns
+its size_t(memory_location) which is unique for every pear. The idea is that
+the peer can be saved then in an array or unordered map and accessed via ID on
+receive and disconnect events. Callback lambdas can catch values which is quite
+helpful in this case.
+
+## Custom events
+
+ENet used to allow the creation of custom events with intercept callback. While
+that might be useful in some cases, my thoughts are that Wenet should serve as
+a base for handling packets, and their content analysis should be done somewhere
+else.
+
+Intercept callback is still available in host but custom events will not be
+invoking any callbacks.
 
 ## Sending a packet to a Wenet peer
 
@@ -144,11 +165,23 @@ This is the default flag. A reliable packet is guaranteed to be delivered,
 and a number of retry attempts will be made until an acknowledgement is
 received from the foreign host the packet is sent to. If a certain number of
 retry attempts is reached without any acknowledgement, Wenet will assume the
-peer has disconnected and forcefully reset the connection.
+peer has disconnected and forcefully reset the connection. It is important to
+add that reliable delivery is **slow** and the whole point of ENet is
+unreliable delivery thus if majority of your packets are reliable, you should
+switch to TCP library.
 
 - Packet::Flag::Unreliable specifies that packet should be delivered using
 unreliable delivery, so no retry attempts will be made nor acknowledgements
 generated.
+
+- Packet::Flag::Unsequenced - packet will not be sequenced with other packets
+not supported for reliable packets .
+
+- Packet::Flag::Unmanaged - packet will not allocate data, and user must
+supply it instead.
+
+- Packet::Flag::Fragment - acket will be fragmented using unreliable
+(instead of reliable) sends if it exceeds the MTU.
 
 A packet may be resized (extended or truncated) with packet.resize(). Or by
 adding additional data using operator <<. For obvious reasons this operator will
@@ -229,31 +262,45 @@ string unpack(span<const byte> data) { return {data.begin(), data.end()}; }
 
 int main()
 {
+    const auto hostname = "localhost"s;
+    const auto port = 1238u;
+
+    // Create Client
     Host client{};
-
-    client.onConnect([] { cout << "Connected" << endl; });
-    client.onDisconnect([] { cout << "Disconnected" << endl; });
-
     client.setCompression<sq::wenet::compressor::Zlib>();
 
-    auto hostname = "localhost"s;
-    auto server = client.connect({hostname, 1238u});
+    // Connect
+    client.onConnect([] { cout << "Connected" << endl; });
+
+    // Disconnect
+    client.onDisconnect([] { cout << "Disconnected" << endl; });
+
+    // Receive
+    bool work = true;
+    client.onReceive([&work](Packet&& packet) {
+        auto data = unpack(packet.getData());
+        if (data == "quit"s) work = false;
+        cout << "[server] " << data << endl;
+    });
+
+    // Connect to server
+    auto server = client.connect({hostname, port});
     server.setTimeout({1000_ms, 0_ms, 1000_ms});
     server.setPingInterval(500_ms);
 
-    bool work = true;
     while (work) {
-        client.service(100_ms, [&work](Packet&& packet) {
-            auto data = unpack(packet.getData());
-            if (data == "quit"s) work = false;
-            cout << "[server] " << data << endl;
-        });
+        // Work
+        client.service(100_ms);
+
+        // Ask for input
         if (work) {
             string str;
             std::cin >> str;
             auto data = pack(str);
             server.send({data});
         }
+        // since input wait stops "ping events" server will disconnect client
+        // after 1s timeout
     }
 }
 ```
@@ -272,35 +319,42 @@ using namespace sq::wenet;
 string descClient(const Peer& peer)
 {
     auto addr = peer.getAddress();
-    return "["s + addr.getIp() + ":" + to_string(addr.getPort()) + "] "s;
+    auto name = "["s + addr.getIp() + ":" + to_string(addr.getPort()) + "]";
+    return name + "#" + std::to_string(peer.getId()) + " ";
 }
 
 string unpack(span<const byte> data) { return {data.begin(), data.end()}; }
 
 int main()
 {
-    Host server{{1238u}, 32};
+    const auto port = 1238u;
 
-    server.onConnect([](Peer&& peer) {
+    // Create server
+    Host server{{port}, 32};
+    server.setCompression<sq::wenet::compressor::Zlib>();
+
+    // Connect
+    server.onConnect([](Peer& peer) {
         cout << descClient(peer) << "Connected" << endl;
         peer.setTimeout({1000_ms, 0_ms, 1000_ms});
         peer.setPingInterval(500_ms);
     });
 
-    server.onDisconnect([](Peer&& peer) {
-        cout << descClient(peer) << "Disconnected" << endl;
+    // Disconnect
+    server.onDisconnect([](size_t peerId) {
+        cout << "#" << peerId << " Disconnected" << endl;
     });
 
-    server.setCompression<sq::wenet::compressor::Zlib>();
-
+    // Receive
     bool work = true;
-    while (work) {
-        server.service(1000_ms, [&work](Peer&& peer, Packet&& packet) {
-            auto data = unpack(packet.getData());
-            cout << descClient(peer) << data << endl;
-            peer.send(packet);
-            if (data == "quit"s) work = false;
-        });
-    }
+    server.onReceive([&work](Peer& peer, Packet&& packet) {
+        auto data = unpack(packet.getData());
+        cout << descClient(peer) << data << endl;
+        peer.send(packet);
+        if (data == "quit"s) work = false;
+    });
+
+    // Work
+    while (work) server.service(1000_ms);
 }
 ```
