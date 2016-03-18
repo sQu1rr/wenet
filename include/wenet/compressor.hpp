@@ -75,8 +75,9 @@ public:
     Zlib();
     ~Zlib() noexcept;
 
-    size_t compress(BufferVector&& in, size_t inLen, span<byte> out) noexcept;
-    size_t decompress(span<const byte> in, span<byte> out) noexcept;
+    size_t compress(BufferVector&& in, size_t inLen,
+                    span<byte> out) noexcept override;
+    size_t decompress(span<const byte> in, span<byte> out) noexcept override;
 
 private:
     z_stream streamDef_;
