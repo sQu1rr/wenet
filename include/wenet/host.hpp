@@ -23,8 +23,6 @@ namespace sq {
 namespace wenet {
 
 class Host {
-    friend class Peer;
-
     struct Deleter { void operator () (ENetHost* host) const noexcept; };
 
     struct Bandwidth {
@@ -52,6 +50,8 @@ public:
 public:
     Host(size_t peerCount=1, const ENetAddress* address=nullptr);
     Host(const Address& address, size_t peerCount);
+
+    operator ENetHost* () const noexcept { return host_.get(); }
 
     Peer connect(const Address& address) noexcept;
 
@@ -123,6 +123,8 @@ public:
     uint32_t getTotalReceivedPackets() const noexcept;
     uint32_t getTotalSentData() const noexcept;
     uint32_t getTotalSentPackets() const noexcept;
+
+    static void staticRemovePeer(const Peer& peer) noexcept;
 
 private:
     void parseEvent();

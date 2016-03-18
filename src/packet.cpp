@@ -54,7 +54,7 @@ const Packet& Packet::operator << (span<const byte> data) const
         throw FlagException{"Cannot modify unmanaged packet"};
     }
     
-    auto size = getSize();
+    const auto size = getSize();
     enet_packet_resize(packet_, size + data.size());
     std::copy(data.begin(), data.end(), packet_->data + size);
     return *this;
@@ -70,7 +70,7 @@ void Packet::onDestroy(const FreeCallback& callback) const noexcept
     if (callback) {
         packet_->userData = new FreeCallback(callback);
         packet_->freeCallback = [](ENetPacket* packet) {
-            auto callback = reinterpret_cast<FreeCallback*>(packet->userData);
+            const auto callback = reinterpret_cast<FreeCallback*>(packet->userData);
             (*callback)({*packet, false});
             delete reinterpret_cast<FreeCallback*>(packet->userData);
         };

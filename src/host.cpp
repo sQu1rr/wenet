@@ -213,6 +213,12 @@ uint32_t Host::getTotalSentPackets() const noexcept
     return host_->totalSentPackets;
 }
 
+void Host::staticRemovePeer(const Peer& peer) noexcept
+{
+    const auto ptr = static_cast<ENetPeer*>(peer);
+    retrieve(ptr->host).removePeer(*ptr);
+}
+
 void Host::parseEvent()
 {
     auto peer = event_.peer;
