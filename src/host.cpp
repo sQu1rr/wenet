@@ -91,19 +91,14 @@ void Host::onDisconnect(DisconnectCallback callback) noexcept
 
 bool Host::receive(int limit) noexcept
 {
+    ENetEvent event;
     do {
-        auto result = enet_host_check_events(host_.get(), &event_);
-        if (result > 0) parseEvent();
-        else if (result < 0) throw ReceiveEventException{"Cannot receive event"};
+        auto result = enet_host_check_events(host_.get(), &event);
+        if (result > 0) parseEvent(event);
+        else if (result < 0) throw ReceiveEventException{"Cannot receive"};
         else return false;
     } while(--limit);
     return true;
-}
-
-bool Host::receive(Callback callback, int limit) noexcept
-{
-    onReceive(callback);
-    return receive(limit);
 }
 
 bool Host::service(int limit) noexcept
@@ -111,27 +106,16 @@ bool Host::service(int limit) noexcept
     return service(time::ms{0}, limit);
 }
 
-bool Host::service(Callback callback, int limit) noexcept
-{
-    onReceive(callback);
-    return service(limit);
-}
-
 bool Host::service(time::ms timeout, int limit) noexcept
 {
+    ENetEvent event;
     do {
-        auto result = enet_host_service(host_.get(), &event_, timeout.count());
-        if (result > 0) parseEvent();
-        else if (result < 0) throw ReceiveEventException{"Cannot receive event"};
+        auto result = enet_host_service(host_.get(), &event, timeout.count());
+        if (result > 0) parseEvent(event);
+        else if (result < 0) throw ReceiveEventException{"Cannot receive"};
         else return false;
     } while(--limit);
     return true;
-}
-
-bool Host::service(time::ms timeout, Callback callback, int limit) noexcept
-{
-    onReceive(callback);
-    return service(timeout, limit);
 }
 
 void Host::flush()
@@ -219,22 +203,22 @@ void Host::staticRemovePeer(const Peer& peer) noexcept
     retrieve(ptr->host).removePeer(*ptr);
 }
 
-void Host::parseEvent()
+void Host::parseEvent(ENetEvent& event)
 {
-    auto peer = event_.peer;
-    if (event_.type == ENET_EVENT_TYPE_CONNECT) {
+    auto peer = event.peer;
+    if (event.type == ENET_EVENT_TYPE_CONNECT) {
         // Connect
-        if (cbConnect_) cbConnect_(createPeer(*peer), event_.data);
+        if (cbConnect_) cbConnect_(createPeer(*peer), event.data);
     }
     else {
-        if (event_.type == ENET_EVENT_TYPE_RECEIVE) {
+        if (event.type == ENET_EVENT_TYPE_RECEIVE) {
             // Receive
-            cbReceive_(getPeer(*peer), {*event_.packet}, event_.channelID);
+            cbReceive_(getPeer(*peer), {*event.packet}, event.channelID);
         }
         else {
             // Disconnect
             if (cbDisconnect_) {
-                cbDisconnect_(getPeer(*peer).getId(), event_.data);
+                cbDisconnect_(getPeer(*peer).getId(), event.data);
             }
             removePeer(*peer);
         }

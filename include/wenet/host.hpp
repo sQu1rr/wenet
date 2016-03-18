@@ -77,11 +77,8 @@ public:
     void onDisconnect(DisconnectCallback callback) noexcept;
 
     bool receive(int limit=0) noexcept;
-    bool receive(Callback callback, int limit=0) noexcept;
     bool service(int limit=0) noexcept;
     bool service(time::ms timeout, int limit=0) noexcept;
-    bool service(Callback callback, int limit=0) noexcept;
-    bool service(time::ms timeout, Callback callback, int limit=0) noexcept;
 
     void flush();
 
@@ -128,7 +125,7 @@ public:
     static void staticRemovePeer(const Peer& peer) noexcept;
 
 private:
-    void parseEvent();
+    void parseEvent(ENetEvent& event);
 
     Peer& getPeer(ENetPeer& peer) noexcept;
     Peer& createPeer(ENetPeer& peer) noexcept;
@@ -144,7 +141,6 @@ private:
     std::unique_ptr<ENetHost, Deleter> host_;
     std::unique_ptr<Compressor> compressor_;
     std::vector<Peer> peers_;
-    ENetEvent event_;
 
     static std::atomic<size_t> objects_;
     static std::unordered_map<ENetHost*, Host*> hosts_;

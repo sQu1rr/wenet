@@ -24,12 +24,14 @@ int main()
     server.setPingInterval(500_ms);
 
     bool work = true;
+    client.onReceive([&work](Packet&& packet) {
+        auto data = unpack(packet.getData());
+        if (data == "quit"s) work = false;
+        cout << "[server] " << data << endl;
+    });
+
     while (work) {
-        client.service(100_ms, [&work](Packet&& packet) {
-            auto data = unpack(packet.getData());
-            if (data == "quit"s) work = false;
-            cout << "[server] " << data << endl;
-        });
+        client.service(100_ms);
         if (work) {
             string str;
             std::cin >> str;
