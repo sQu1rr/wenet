@@ -365,7 +365,7 @@ int main()
 ```
 
 # Performance
-Very silly performance test
+Very silly performance test (ENet on the right side)
 ```
  Clients       Speed      Single        Loss   |          Speed      Single        Loss
        1  499.26kb/s  499.26kb/s   0.012207%   |     512.91kb/s  512.91kb/s   0.018311%
