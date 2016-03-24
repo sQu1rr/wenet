@@ -244,6 +244,9 @@ void Host::removePeer(ENetPeer& peer) noexcept
 
     std::swap(peers_[index], peers_.back());
 
+    auto& newPeer = peers_[index];
+    static_cast<ENetPeer*>(newPeer)->data = reinterpret_cast<void*>(index);
+
     peers_.pop_back();
     peer.data = nullptr;
 }
