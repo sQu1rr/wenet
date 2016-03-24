@@ -6,26 +6,23 @@ namespace wenet {
 
 void Host::Deleter::operator () (ENetHost* host) const noexcept
 {
-    hosts_.erase(host);
     enet_host_destroy(host);
 
     if (!--objects_) enet_deinitialize();
 }
 
 std::atomic<size_t> Host::objects_{0};
-std::unordered_map<ENetHost*, Host*> Host::hosts_;
 
 Host::Host(size_t peerCount, const ENetAddress* address)
 {
     if (!objects_++) {
         if (enet_initialize()) {
-            throw InitialisationException{"Cannot initialise ENET"};
+            throw InitException{"Cannot initialise ENET"};
         }
     }
     host_.reset(enet_host_create(address, peerCount, 0u, 0u, 0u));
-    if (!host_) throw InitialisationException{"Cannot initialise host"};
-
-    hosts_[host_.get()] = this;
+    if (!host_) throw InitException{"Cannot initialise host"};
+    peers_.reserve(peerCount);
 }
 
 Host::Host(const Address& address, size_t peerCount) : Host(peerCount, address)
@@ -33,16 +30,16 @@ Host::Host(const Address& address, size_t peerCount) : Host(peerCount, address)
     address_ = address;
 }
 
-Peer Host::connect(const Address& address) noexcept
+Peer& Host::connect(const Address& address) noexcept
 {
     return connect(address, getChannelLimit());
 }
 
-Peer Host::connect(const Address& address, size_t channelCount,
+Peer& Host::connect(const Address& address, size_t channelCount,
                     uint32_t data) noexcept
 {
     auto peer = enet_host_connect(host_.get(), address, channelCount, data);
-    if (!peer) throw InitialisationException{"Cannot connect to peer"};
+    if (!peer) throw InitException{"Cannot connect to peer"};
     return createPeer(*peer);
 }
 
@@ -197,31 +194,35 @@ uint32_t Host::getTotalSentPackets() const noexcept
     return host_->totalSentPackets;
 }
 
-void Host::staticRemovePeer(const Peer& peer) noexcept
+void Host::removePeer(const Peer& peer) noexcept
 {
-    const auto ptr = static_cast<ENetPeer*>(peer);
-    retrieve(ptr->host).removePeer(*ptr);
+    removePeer(*static_cast<ENetPeer*>(peer));
 }
 
 void Host::parseEvent(ENetEvent& event)
 {
     auto peer = event.peer;
-    if (event.type == ENET_EVENT_TYPE_CONNECT) {
-        // Connect
-        if (cbConnect_) cbConnect_(createPeer(*peer), event.data);
-    }
-    else {
-        if (event.type == ENET_EVENT_TYPE_RECEIVE) {
-            // Receive
+
+    switch (event.type) {
+    case ENET_EVENT_TYPE_CONNECT: 
+        createPeer(*peer);
+        if (cbConnect_) cbConnect_(peers_.back(), event.data);
+        break;
+
+    case ENET_EVENT_TYPE_RECEIVE:
+        if (cbReceive_) {
             cbReceive_(getPeer(*peer), {*event.packet}, event.channelID);
         }
-        else {
-            // Disconnect
-            if (cbDisconnect_) {
-                cbDisconnect_(getPeer(*peer).getId(), event.data);
-            }
-            removePeer(*peer);
+        break;
+
+    case ENET_EVENT_TYPE_DISCONNECT:
+        if (cbDisconnect_) {
+            cbDisconnect_(getPeer(*peer).getId(), event.data);
         }
+        break;
+
+    default:
+        break;
     }
 }
 
@@ -233,7 +234,7 @@ Peer& Host::getPeer(ENetPeer& peer) noexcept
 Peer& Host::createPeer(ENetPeer& peer) noexcept
 {
     peer.data = reinterpret_cast<void*>(peers_.size());
-    peers_.emplace_back(peer);
+    peers_.emplace_back(*this, peer);
     return peers_.back();
 }
 

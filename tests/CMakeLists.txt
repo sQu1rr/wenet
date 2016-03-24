@@ -20,7 +20,7 @@ foreach (fileSrc ${testSrcs})
     get_filename_component (filePath ${fileSrc} DIRECTORY)
 
     add_executable (test_${fileName} ${fileSrc} ${srcs})
-    target_link_libraries (test_${fileName} enet lz4)
+    target_link_libraries (test_${fileName} enet)
 
     set_target_properties (test_${fileName} PROPERTIES 
         RUNTIME_OUTPUT_DIRECTORY ${TEST_BIN}/${filePath})

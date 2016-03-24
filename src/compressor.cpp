@@ -15,7 +15,7 @@ Zlib::Zlib()
     streamDef_.opaque = streamInf_.opaque = nullptr;
 
     if (deflateInit(&streamDef_, Z_DEFAULT_COMPRESSION) != Z_OK) {
-        throw Compressor::InitialisationException{"Failed to initialise zlib"};
+        throw Compressor::InitException{"Failed to initialise zlib"};
     }
 
     inflateInit(&streamInf_);

@@ -14,6 +14,8 @@ namespace sq {
 
 namespace wenet {
 
+class Host;
+
 class Peer {
 public:
     struct Throttle {
@@ -44,7 +46,11 @@ public:
     using Callback = convw::Convw<void (const Packet&, uint8_t)>;
 
 public:
-    Peer(ENetPeer& peer) noexcept : peer_(&peer), address_(peer.address) { }
+    Peer(Host& host) noexcept : host_(&host) { }
+    Peer(Host& host, ENetPeer& peer) noexcept
+        : host_(&host), peer_(&peer), address_(peer.address) { }
+
+    Peer& operator = (ENetPeer& peer) noexcept;
 
     operator ENetPeer* () const noexcept { return peer_; }
 
@@ -94,6 +100,7 @@ public:
     uint32_t getPacketLoss() const noexcept;
 
 private:
+    Host* host_;
     ENetPeer* peer_;
     Address address_;
 };

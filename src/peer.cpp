@@ -6,6 +6,13 @@ namespace sq {
 
 namespace wenet {
 
+Peer& Peer::operator = (ENetPeer& peer) noexcept
+{
+    peer_ = &peer;
+    address_ = {peer.address};
+    return *this;
+}
+
 // Disconnect
 
 void Peer::disconnect(uint32_t data) const noexcept
@@ -16,7 +23,7 @@ void Peer::disconnect(uint32_t data) const noexcept
 void Peer::disconnectNow(uint32_t data) const noexcept
 {
     enet_peer_disconnect_now(peer_, data);
-    Host::staticRemovePeer(*this);
+    host_->removePeer(*this);
 }
 
 void Peer::disconnectLater(uint32_t data) const noexcept
@@ -27,7 +34,7 @@ void Peer::disconnectLater(uint32_t data) const noexcept
 void Peer::drop() const noexcept
 {
     enet_peer_reset(peer_);
-    Host::staticRemovePeer(*this);
+    host_->removePeer(*this);
 }
 
 // Ping

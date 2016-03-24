@@ -4,7 +4,7 @@ C++14 [ENet](http://enet.bespin.org) wrapper
 
 # Tutorial
 
-This tutorial is a modifying original
+This tutorial is a modified original
 [ENet tutorial](http://enet.bespin.org/Tutorial.html)
 
 ## Initialisation
@@ -29,13 +29,13 @@ using namespace std;
 
 Servers in Wenet are constructed with Host{} class. You must specify an address
 on which to receive data and new connections, as well as the maximum
-allowable numbers of connected peers.
+allowed numbers of connected peers.
 
 ```cpp
 Host server{{1234u}, 32};
 ```
 
-Host creation might throw Host::InitialisationException if either ENet or host
+Host creation might throw Host::InitException if either ENet or host
 cannot be initialised.
 
 ## Creating a Wenet client
@@ -102,8 +102,8 @@ disconnected or timed out. Callback can receive Peer ID and optional data.
 - onReceive - is called when a packet is received from a connected peer.
 Callback can receive Peer, Packet and channel id.
 
-Any number of arguments can be omitted thanks to
-[Convw](https://github.com/sQu1rr/convw).
+Any number of arguments can be omitted
+([Convw](https://github.com/sQu1rr/convw)).
 
 ```cpp
 host.onConnect([](Peer&& peer, uint32_t data) {
@@ -120,6 +120,10 @@ host.onReceive([](Peer&& peer, Packet&& packet, uint8_t channelId) {
 host.service(1000_ms); // wait 1000 ms for an event
 ```
 
+**Be aware**: Peer is potentially invalidated on each call to host.service()
+and is not guaranteed to exist thus should not be saved inbetween host.service()
+calls.
+
 An optional limit can be specified that will limit the number of events
 processed in one go. by default all pending events are processed which means
 that in theory this function can never return and process events forever,
@@ -130,14 +134,10 @@ since new incoming events may arrive.
 while (true) host.service(1);
 ```
 
-**Be aware**: Peer is potentially invalidated on each call to host.service()
-and is not guaranteed to exist thus should not be saved inbetween host.service()
-calls.
-
 ## User management
 
 The idea was to separate the concerns thus peer has getId() method which returns
-its size_t(memory_location) which is unique for every pear. The idea is that
+its size_t(memory_location) which is unique for every peer. The idea is that
 the peer can be saved then in an array or unordered map and accessed via ID on
 receive and disconnect events. Callback lambdas can catch values which is quite
 helpful in this case.
@@ -178,9 +178,14 @@ generated.
 not supported for reliable packets .
 
 - Packet::Flag::Unmanaged - packet will not allocate data, and user must
-supply it instead.
+supply it instead. onDestroy() packet method allows to pass a callback which
+will be invoked when packet gets freed.
 
-- Packet::Flag::Fragment - acket will be fragmented using unreliable
+```cpp
+packet.onDestroy([](Packet&& packet) { cout << "Packet freed"; });
+```
+
+- Packet::Flag::Fragment - packet will be fragmented using unreliable
 (instead of reliable) sends if it exceeds the MTU.
 
 A packet may be resized (extended or truncated) with packet.resize(). Or by
@@ -188,9 +193,7 @@ adding additional data using operator <<. For obvious reasons this operator will
 throw if tried to use on unmanaged packet.
 
 A packet is sent to a foreign host with peer.send(). peer.send() accepts a
-channel id over which to send the packet to a given peer. Once the packet is
-handed over to Wenet with peer.send(), Wenet will handle its deallocation
-automatically.
+channel id over which to send the packet to a given peer.
 
 One may also use host.broadcast() to send a packet to all connected
 peers on a given host over a specified channel id, as with peer.send().
@@ -231,13 +234,15 @@ A connection to a foreign host is initiated with host.connect().
 It accepts the address of a foreign host to connect to, and the number
 of channels that should be allocated for communication. If N channels are
 allocated for use, their channel ids will be numbered 0 through N-1.
-If connection does not succeed a Host::InitialisationException is thrown.
+If connection does not succeed a Host::InitException is thrown.
+
 When the connection attempt succeeds, onConnect will be invoked.
+
 If the connection attempt times out or otherwise fails onDisconnect callback
 will be called.
 
 ```cpp
-auto hostname = "localhost"s;
+const auto hostname = "localhost"s;
 auto peer = host.connect({hostname, 1238u});
 
 host.onConnect([] { cout << "Success" << endl; });
@@ -358,3 +363,28 @@ int main()
     while (work) server.service(1000_ms);
 }
 ```
+
+# Performance
+Very silly performance test
+```
+ Clients       Speed      Single        Loss   |          Speed      Single        Loss
+       1  499.26kb/s  499.26kb/s   0.012207%   |     512.91kb/s  512.91kb/s   0.018311%
+       2  534.96kb/s  267.48kb/s   1.025391%   |     496.18kb/s  248.09kb/s   0.817871%
+       4  370.50kb/s   92.62kb/s   2.362205%   |     369.40kb/s   92.35kb/s   3.442593%
+       8   26.01kb/s    3.25kb/s  70.422363%   |      33.93kb/s    4.24kb/s  64.318848%
+      16   27.57kb/s    1.72kb/s  79.071274%   |      72.67kb/s    4.54kb/s  77.814026%
+      32   15.99kb/s   511.00b/s  82.435898%   |      45.71kb/s    1.43kb/s  86.235115%
+      64   26.24kb/s   419.00b/s  74.171341%   |      25.68kb/s   410.00b/s  90.989586%
+     128   15.03kb/s   120.00b/s  96.479034%   |       7.65kb/s    61.00b/s  97.378540%
+     256    5.00kb/s    20.00b/s  99.008194%   |       2.98kb/s    11.00b/s  99.206947%
+     512    2.66kb/s     5.00b/s  99.558342%   |       4.03kb/s     8.00b/s  99.261436%
+```
+
+# Testing
+Ugh, only one address.cpp test is available for now
+
+# Docs
+Ugh, will have to do that as well
+
+# Contribution
+Yes please

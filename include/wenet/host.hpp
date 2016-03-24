@@ -44,7 +44,7 @@ public:
     class ReceiveEventException : public Exception {
     public: using Exception::Exception;
     };
-    class InitialisationException : public Exception {
+    class InitException : public Exception {
     public: using Exception::Exception;
     };
 
@@ -54,14 +54,9 @@ public:
 
     operator ENetHost* () const noexcept { return host_.get(); }
 
-    Peer connect(const Address& address) noexcept;
-
-    template <typename T>
-    Peer connect(const Address& address, size_t channelCount, T data) noexcept
-        { return connect(address, channelCount, static_cast<uint32_t>(data)); }
-
-    Peer connect(const Address& address, size_t channelCount,
-                 uint32_t data=0) noexcept;
+    Peer& connect(const Address& address) noexcept;
+    Peer& connect(const Address& address, size_t channelCount,
+                  uint32_t data=0) noexcept;
 
     Bandwidth getBandwidth() const noexcept;
     void setBandwidth(const Bandwidth& bandwidth) noexcept;
@@ -92,8 +87,9 @@ public:
 
     // Peers
 
-    size_t peerCount() const noexcept { return peers_.size(); }
-    std::vector<Peer>& getPeers() noexcept { return peers_; }
+    size_t getPeerCount() const noexcept { return peers_.size(); }
+    size_t getPeerLimit() const noexcept { return host_->peerCount; }
+    span<Peer> getPeers() noexcept { return gsl::as_span(peers_); }
 
     // 1.3.9
 #if ENET_VERSION_CREATE(1, 3, 9) <= ENET_VERSION
@@ -122,7 +118,7 @@ public:
     uint32_t getTotalSentData() const noexcept;
     uint32_t getTotalSentPackets() const noexcept;
 
-    static void staticRemovePeer(const Peer& peer) noexcept;
+    void removePeer(const Peer& peer) noexcept;
 
 private:
     void parseEvent(ENetEvent& event);
@@ -130,8 +126,6 @@ private:
     Peer& getPeer(ENetPeer& peer) noexcept;
     Peer& createPeer(ENetPeer& peer) noexcept;
     void removePeer(ENetPeer& peer) noexcept;
-
-    static Host& retrieve(ENetHost* host) noexcept { return *hosts_[host]; }
 
 private:
     Address address_;
@@ -143,7 +137,6 @@ private:
     std::vector<Peer> peers_;
 
     static std::atomic<size_t> objects_;
-    static std::unordered_map<ENetHost*, Host*> hosts_;
 };
 
 template <typename Comp>

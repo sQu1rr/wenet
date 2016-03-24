@@ -2,7 +2,7 @@ cmake_minimum_required (VERSION 2.8)
 
 project (wenet)
 
-set (FLAGS "-Wall -Werror -std=c++14 -pedantic-errors -pipe -lz")
+set (FLAGS "-Wall -Werror -std=c++14 -pedantic-errors -pipe -lz -pthread")
 set (FLAGS "${FLAGS} -fno-stack-protector") # Some linux distributions have it
 set (FLAGS "${FLAGS} -march=native") # Building for this PC only
 
@@ -66,4 +66,4 @@ include_directories (include)
 
 add_subdirectory (tests)
 add_subdirectory (examples)
-#add_subdirectory (benchmarks)
+add_subdirectory (benchmarks)
