@@ -272,7 +272,6 @@ int main()
 
     // Create Client
     Host client{};
-    client.setCompression<compressor::Zlib>();
 
     // Connect
     client.onConnect([] { cout << "Connected" << endl; });
@@ -290,8 +289,6 @@ int main()
 
     // Connect to server
     auto server = client.connect({hostname, port});
-    server.setTimeout({1000_ms, 0_ms, 1000_ms});
-    server.setPingInterval(500_ms);
 
     while (work) {
         // Work
@@ -304,8 +301,6 @@ int main()
             auto data = pack(str);
             server.send({data});
         }
-        // since input wait stops "ping events" server will disconnect client
-        // after 1s timeout
     }
 }
 ```
@@ -336,13 +331,10 @@ int main()
 
     // Create server
     Host server{{port}, 32};
-    server.setCompression<compressor::Zlib>();
 
     // Connect
     server.onConnect([](Peer& peer) {
         cout << descClient(peer) << "Connected" << endl;
-        peer.setTimeout({1000_ms, 0_ms, 1000_ms});
-        peer.setPingInterval(500_ms);
     });
 
     // Disconnect
@@ -363,6 +355,8 @@ int main()
     while (work) server.service(1000_ms);
 }
 ```
+
+A bit more complicated examples are in examples/ directory
 
 # Performance
 Very silly performance test (ENet on the right side)
