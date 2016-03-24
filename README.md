@@ -272,7 +272,7 @@ int main()
 
     // Create Client
     Host client{};
-    client.setCompression<sq::wenet::compressor::Zlib>();
+    client.setCompression<compressor::Zlib>();
 
     // Connect
     client.onConnect([] { cout << "Connected" << endl; });
@@ -336,7 +336,7 @@ int main()
 
     // Create server
     Host server{{port}, 32};
-    server.setCompression<sq::wenet::compressor::Zlib>();
+    server.setCompression<compressor::Zlib>();
 
     // Connect
     server.onConnect([](Peer& peer) {
@@ -366,6 +366,8 @@ int main()
 
 # Performance
 Very silly performance test (ENet on the right side)
+
+Not sure why the loss is that big, but at least it is consistent with ENet
 ```
  Clients       Speed      Single        Loss   |          Speed      Single        Loss
        1  499.26kb/s  499.26kb/s   0.012207%   |     512.91kb/s  512.91kb/s   0.018311%
@@ -380,8 +382,24 @@ Very silly performance test (ENet on the right side)
      512    2.66kb/s     5.00b/s  99.558342%   |       4.03kb/s     8.00b/s  99.261436%
 ```
 
+# Requirements
+- c++14 compiler (tested on GCC 5.3 (linux) only)
+- Microsoft's [gsl](https://github.com/microsoft/gsl)
+- [belks](https://github.com/sQu1rr/belks) header only library
+- [Catch](https://github.com/philsquared/Catch/) for testing
+
 # Testing
 Ugh, only one address.cpp test is available for now
+
+## Build all
+```bash
+mkdir -p build && cd build && cmake .. && make
+```
+- Examples will reside in /example-bin
+- Benchmarks will reside in /benchmark-bin
+- Tests will reside in /test-bin
+- Testing and benchmarking was only done on linux using GCC 5.3
+
 
 # Docs
 Ugh, will have to do that as well
