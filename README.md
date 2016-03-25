@@ -32,7 +32,7 @@ on which to receive data and new connections, as well as the maximum
 allowed numbers of connected peers.
 
 ```cpp
-Host server{{1234u}, 32};
+Host server{Address{1234u}, 32};
 ```
 
 Host creation might throw Host::InitException if either ENet or host
@@ -330,7 +330,7 @@ int main()
     const auto port = 1238u;
 
     // Create server
-    Host server{{port}, 32};
+    Host server{Address{port}, 32};
 
     // Connect
     server.onConnect([](Peer& peer) {

@@ -23,6 +23,18 @@ Address::Address(cstring_span<> host, uint16_t port)
 Address::Address(const ENetAddress& address) noexcept : address_(address) { }
 Address::Address(ENetAddress&& address) noexcept : address_(address) { }
 
+Address& Address::operator = (const ENetAddress& address) noexcept
+{
+    address_ = address;
+    return *this;
+}
+
+Address& Address::operator = (ENetAddress&& address) noexcept
+{
+    address_ = address;
+    return *this;
+}
+
 void Address::setHost(cstring_span<> hostname)
 {
     if (enet_address_set_host(&address_, gsl::to_string(hostname).c_str())) {

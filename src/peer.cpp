@@ -9,7 +9,7 @@ namespace wenet {
 Peer& Peer::operator = (ENetPeer& peer) noexcept
 {
     peer_ = &peer;
-    address_ = {peer.address};
+    address_ = peer.address;
     return *this;
 }
 

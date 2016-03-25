@@ -46,7 +46,7 @@ public:
     using Callback = convw::Convw<void (const Packet&, uint8_t)>;
 
 public:
-    Peer(Host& host) noexcept : host_(&host) { }
+    explicit Peer(Host& host) noexcept : host_(&host) { }
     Peer(Host& host, ENetPeer& peer) noexcept
         : host_(&host), peer_(&peer), address_(peer.address) { }
 

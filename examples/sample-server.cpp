@@ -20,7 +20,7 @@ int main()
     const auto port = 1238u;
 
     // Create server
-    Host server{{port}, 32};
+    Host server{Address{port}, 32};
     server.setCompression<sq::wenet::compressor::Zlib>();
 
     // Connect

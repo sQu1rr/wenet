@@ -81,7 +81,7 @@ protected:
 
 class WenetServer : public ServerBase<WenetServer> {
 public:
-    WenetServer(uint n, uint t) : ServerBase(n, t), host_({port}, n)
+    WenetServer(uint n, uint t) : ServerBase(n, t), host_(Address{port}, n)
     {
         host_.onReceive([this](Peer& peer, Packet&& packet) {
             in_ += packet.getSize();

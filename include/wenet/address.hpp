@@ -18,12 +18,15 @@ public:
 public:
     Address() noexcept = default;
 
-    Address(uint16_t port) noexcept : Address(ENET_HOST_ANY, port) { }
+    explicit Address(uint16_t port) noexcept : Address(ENET_HOST_ANY, port) { }
     Address(uint32_t host, uint16_t port) noexcept;
     Address(cstring_span<> host, uint16_t port);
 
-    Address(const ENetAddress& address) noexcept;
-    Address(ENetAddress&& address) noexcept;
+    explicit Address(const ENetAddress& address) noexcept;
+    explicit Address(ENetAddress&& address) noexcept;
+
+    Address& operator = (const ENetAddress& address) noexcept;
+    Address& operator = (ENetAddress&& address) noexcept;
 
     void setHost(cstring_span<> host);
     void setHost(uint32_t host) noexcept { address_.host = host; }
