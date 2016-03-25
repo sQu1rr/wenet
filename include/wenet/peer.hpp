@@ -101,7 +101,7 @@ public:
 
 private:
     Host* host_;
-    ENetPeer* peer_;
+    ENetPeer* peer_ = nullptr;
     Address address_;
 };
 

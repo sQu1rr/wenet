@@ -6,6 +6,26 @@ namespace sq {
 
 namespace wenet {
 
+Packet::Flags convertFlags(Packet::Flags flags)
+{
+    using Exception = Packet::Exception;
+    if (!flags) throw Exception{"Flags cannot be empty"};
+
+    if (flags & Packet::Flag::Reliable) {
+        if (flags & Packet::Flag::Unsequenced) {
+            throw Exception{"Unsequenced packet cannot be reliable"};
+        }
+        if (flags & Packet::Flag::Fragment) {
+            throw Exception{"Fragmented packets override reliability flag"};
+        }
+        if (flags & Packet::Flag::Unreliable) {
+            throw Exception{"Packet is either reliable or unreliable"};
+        }
+    }
+
+    return flags & ~Packet::Flag::Unreliable; // unreliable is a dummy flag
+}
+
 // ENetPacket Deleter
 
 void Packet::Deleter::operator () (ENetPacket* packet) const noexcept
@@ -98,25 +118,6 @@ void Packet::resize(size_t size) const
 span<byte> Packet::getData() const noexcept
 {
     return {packet_->data, std::ptrdiff_t(packet_->dataLength)};
-}
-
-Packet::Flags Packet::convertFlags(Flags flags) const
-{
-    if (!flags) throw FlagException{"Flags cannot be empty"};
-
-    if (flags & Flag::Reliable) {
-        if (flags & Flag::Unsequenced) {
-            throw FlagException{"Unsequenced packet cannot be reliable"};
-        }
-        if (flags & Flag::Fragment) {
-            throw FlagException{"Fragmented packets override reliability flag"};
-        }
-        if (flags & Flag::Unreliable) {
-            throw FlagException{"Packet is either reliable or unreliable"};
-        }
-    }
-
-    return flags & ~Flag::Unreliable; // unreliable is a dummy flag
 }
 
 void Packet::create(span<const byte> data, uint32_t flags) noexcept

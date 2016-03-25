@@ -54,9 +54,8 @@ public:
 
     operator ENetHost* () const noexcept { return host_.get(); }
 
-    Peer& connect(const Address& address) noexcept;
-    Peer& connect(const Address& address, size_t channelCount,
-                  uint32_t data=0) noexcept;
+    Peer& connect(const Address& address);
+    Peer& connect(const Address& address, size_t channelCount, uint32_t data=0);
 
     Bandwidth getBandwidth() const noexcept;
     void setBandwidth(const Bandwidth& bandwidth) noexcept;
@@ -71,9 +70,9 @@ public:
     void onConnect(ConnectCallback callback) noexcept;
     void onDisconnect(DisconnectCallback callback) noexcept;
 
-    bool receive(int limit=0) noexcept;
-    bool service(int limit=0) noexcept;
-    bool service(time::ms timeout, int limit=0) noexcept;
+    bool receive(int limit=0);
+    bool service(int limit=0);
+    bool service(time::ms timeout, int limit=0);
 
     void flush();
 

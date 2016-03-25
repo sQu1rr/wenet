@@ -68,7 +68,6 @@ public:
     bool isOwned() const noexcept { return packetOwned_.get(); }
 
 private:
-    Flags convertFlags(Flags flags) const;
     void create(span<const byte> data, uint32_t flags) noexcept;
 
     void throwIfLocked() const;

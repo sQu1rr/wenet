@@ -14,6 +14,9 @@ void Host::Deleter::operator () (ENetHost* host) const noexcept
 std::atomic<size_t> Host::objects_{0};
 
 Host::Host(size_t peerCount, const ENetAddress* address)
+    : Host(address ? Address{*address} : Address{}, peerCount) { }
+
+Host::Host(const Address& address, size_t peerCount)
 {
     if (!objects_++) {
         if (enet_initialize()) {
@@ -25,18 +28,13 @@ Host::Host(size_t peerCount, const ENetAddress* address)
     peers_.reserve(peerCount);
 }
 
-Host::Host(const Address& address, size_t peerCount) : Host(peerCount, address)
-{
-    address_ = address;
-}
-
-Peer& Host::connect(const Address& address) noexcept
+Peer& Host::connect(const Address& address)
 {
     return connect(address, getChannelLimit());
 }
 
 Peer& Host::connect(const Address& address, size_t channelCount,
-                    uint32_t data) noexcept
+                    uint32_t data)
 {
     auto peer = enet_host_connect(host_.get(), address, channelCount, data);
     if (!peer) throw InitException{"Cannot connect to peer"};
@@ -86,7 +84,7 @@ void Host::onDisconnect(DisconnectCallback callback) noexcept
     cbDisconnect_ = std::move(callback);
 }
 
-bool Host::receive(int limit) noexcept
+bool Host::receive(int limit)
 {
     ENetEvent event;
     do {
@@ -98,12 +96,12 @@ bool Host::receive(int limit) noexcept
     return true;
 }
 
-bool Host::service(int limit) noexcept
+bool Host::service(int limit)
 {
     return service(time::ms{0}, limit);
 }
 
-bool Host::service(time::ms timeout, int limit) noexcept
+bool Host::service(time::ms timeout, int limit)
 {
     ENetEvent event;
     do {
