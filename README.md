@@ -378,8 +378,10 @@ Not sure why the loss is that big, but at least it is consistent with ENet
 
 # Requirements
 - c++14 compiler (tested on GCC 5.3 (linux) only)
-- Microsoft's [gsl](https://github.com/microsoft/gsl)
 - [ENet](http://enet.bespin.org) enet library
+
+# Dependencies (automatically pulled when building)
+- Microsoft's [gsl](https://github.com/microsoft/gsl)
 - [belks](https://github.com/sQu1rr/belks) header only library
 - [Catch](https://github.com/philsquared/Catch/) for testing
 
