@@ -20,7 +20,6 @@ using BufferVector = std::vector<span<const byte>>;
 
 } // \wrapper
 
-
 class Compressor {
 public:
     class InitException : public std::runtime_error {

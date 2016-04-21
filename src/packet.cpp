@@ -73,7 +73,7 @@ const Packet& Packet::operator << (span<const byte> data) const
     if (packet_->flags & Flag::Unmanaged) {
         throw FlagException{"Cannot modify unmanaged packet"};
     }
-    
+
     const auto size = getSize();
     enet_packet_resize(packet_, size + data.size());
     std::copy(data.begin(), data.end(), packet_->data + size);
